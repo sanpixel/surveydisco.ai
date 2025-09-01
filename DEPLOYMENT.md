@@ -12,20 +12,26 @@
 
 **4.** Install Docker Desktop
 
-**5.** Go to Google Cloud Console → Create new project: `surveydisco-ai`
-
-**6.** Enable billing for the project (use existing warp-ratio billing account)
-
-**7.** 🔴 **RED: Note the PROJECT_ID** (will need for deployment)
-
-**8.** Authenticate with Google Cloud:
+**5.** Authenticate with Google Cloud:
 ```bash
 gcloud auth login
 ```
 
-**9.** Set your project:
+**6.** Create new project:
 ```bash
-gcloud config set project YOUR-PROJECT-ID
+gcloud projects create YOUR-PROJECT-ID --set-as-default
+```
+
+**7.** Link billing account:
+```bash
+gcloud beta billing projects link YOUR-PROJECT-ID --billing-account=BILLING-ACCOUNT-ID
+```
+
+**8.** 🔴 **RED: Note the PROJECT_ID** (will need for deployment)
+
+**9.** Verify project is set:
+```bash
+gcloud config get-value project
 ```
 
 **10.** Enable required APIs:

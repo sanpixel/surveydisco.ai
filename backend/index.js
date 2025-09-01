@@ -6,6 +6,8 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+console.log('Starting server on port:', PORT);
+
 app.use(cors());
 app.use(express.json());
 
@@ -16,8 +18,14 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', service: 'SurveyDisco.ai' });
 });
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+// Serve React app for all other routes
+app.get('/*', (req, res) => {
+  const indexPath = path.join(__dirname, '../frontend/build/index.html');
+  if (require('fs').existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({ error: 'React app not found' });
+  }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
