@@ -1,0 +1,8 @@
+{
+  "name": "surveydisco-ai",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node backend/index.js",
+    "dev": "cd backend && npm run dev"
+  }
+}
