@@ -616,12 +616,12 @@ app.delete('/api/todos/:id', async (req, res) => {
   }
 });
 
-app.get('/', (req, res) => {
-  res.json({ 
-    message: 'SurveyDisco.ai API', 
-    service: 'Email-driven surveying workflow management',
-    endpoints: ['/api/health', '/api/projects', '/api/projects/parse', '/api/projects/:id', '/api/todos']
-  });
+// Serve React static files
+app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+// Catch-all handler for React Router
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {
