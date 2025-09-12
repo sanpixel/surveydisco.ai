@@ -100,6 +100,14 @@ async function initDatabase() {
         ALTER TABLE surveydisco_projects 
         ADD COLUMN IF NOT EXISTS prepared_for VARCHAR(255)
       `);
+      await pool.query(`
+        ALTER TABLE surveydisco_projects 
+        ADD COLUMN IF NOT EXISTS travel_time VARCHAR(50)
+      `);
+      await pool.query(`
+        ALTER TABLE surveydisco_projects 
+        ADD COLUMN IF NOT EXISTS travel_distance VARCHAR(50)
+      `);
     } catch (alterError) {
       // Columns might already exist, ignore error
       console.log('Columns might already exist');
@@ -137,6 +145,81 @@ async function validateAddress(address) {
   } catch (error) {
     console.error('Address validation error:', error);
     return null; // Return null on error, keep original address
+  }
+}
+
+// Calculate travel time using Google Routes API
+async function calculateTravelTime(destinationAddress) {
+  if (!process.env.GOOGLE_MAPS_API_KEY || !destinationAddress) {
+    return null;
+  }
+
+  const homeAddress = '523 Hastings Way, Jonesboro, GA 30238';
+  
+  try {
+    const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+    
+    const requestBody = {
+      origin: {
+        address: homeAddress
+      },
+      destination: {
+        address: destinationAddress
+      },
+      travelMode: 'DRIVE',
+      routingPreference: 'TRAFFIC_AWARE',
+      computeAlternativeRoutes: false,
+      routeModifiers: {
+        avoidTolls: false,
+        avoidHighways: false,
+        avoidFerries: false
+      },
+      languageCode: 'en-US',
+      units: 'IMPERIAL'
+    };
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY,
+        'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.staticDuration'
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    const data = await response.json();
+    
+    if (data.routes && data.routes.length > 0) {
+      const route = data.routes[0];
+      const durationSeconds = parseInt(route.duration?.replace('s', '') || route.staticDuration?.replace('s', ''));
+      const distanceMeters = route.distanceMeters;
+      
+      if (durationSeconds && distanceMeters) {
+        // Convert duration to readable format
+        const hours = Math.floor(durationSeconds / 3600);
+        const minutes = Math.floor((durationSeconds % 3600) / 60);
+        let durationText = '';
+        if (hours > 0) {
+          durationText = `${hours} hr ${minutes} min`;
+        } else {
+          durationText = `${minutes} min`;
+        }
+        
+        // Convert distance to miles
+        const distanceMiles = (distanceMeters * 0.000621371).toFixed(1);
+        
+        return {
+          duration: durationText,
+          distance: `${distanceMiles} mi`
+        };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Travel time calculation error:', error);
+    return null;
   }
 }
 
@@ -316,6 +399,20 @@ async function parseProjectText(text) {
     }
   }
 
+  // Calculate travel time and distance if we have an address
+  const addressToUse = project.geoAddress || project.address;
+  if (addressToUse) {
+    try {
+      const travelInfo = await calculateTravelTime(addressToUse);
+      if (travelInfo) {
+        project.travelTime = travelInfo.duration;
+        project.travelDistance = travelInfo.distance;
+      }
+    } catch (error) {
+      console.log('Travel time calculation failed:', error);
+    }
+  }
+
   return project;
 }
 
@@ -344,7 +441,9 @@ app.get('/api/projects', async (req, res) => {
       status: row.status,
       created: row.created,
       modified: row.modified,
-      notes: row.notes
+      notes: row.notes,
+      travelTime: row.travel_time,
+      travelDistance: row.travel_distance
     }));
     res.json(projects);
   } catch (error) {
@@ -365,8 +464,8 @@ app.post('/api/projects/parse', async (req, res) => {
     const project = await parseProjectText(text);
     
     const result = await pool.query(`
-      INSERT INTO surveydisco_projects (job_number, client, email, phone, prepared_for, address, geo_address, parcel, area, contact, service_type, cost_estimate, status, notes)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+      INSERT INTO surveydisco_projects (job_number, client, email, phone, prepared_for, address, geo_address, parcel, area, contact, service_type, cost_estimate, status, notes, travel_time, travel_distance)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING *
     `, [
       project.jobNumber,
@@ -382,7 +481,9 @@ app.post('/api/projects/parse', async (req, res) => {
       project.serviceType,
       project.costEstimate,
       project.status,
-      project.notes
+      project.notes,
+      project.travelTime || null,
+      project.travelDistance || null
     ]);
     
     const savedProject = {
@@ -402,13 +503,78 @@ app.post('/api/projects/parse', async (req, res) => {
       status: result.rows[0].status,
       created: result.rows[0].created,
       modified: result.rows[0].modified,
-      notes: result.rows[0].notes
+      notes: result.rows[0].notes,
+      travelTime: result.rows[0].travel_time,
+      travelDistance: result.rows[0].travel_distance
     };
     
     res.json(savedProject);
   } catch (error) {
     console.error('Error creating project:', error);
     res.status(500).json({ error: 'Failed to create project' });
+  }
+});
+
+// Refresh travel time for a project
+app.post('/api/projects/:id/refresh-travel', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    // Get current project
+    const projectResult = await pool.query('SELECT * FROM surveydisco_projects WHERE id = $1', [id]);
+    
+    if (projectResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    const project = projectResult.rows[0];
+    const addressToUse = project.geo_address || project.address;
+    
+    if (!addressToUse) {
+      return res.status(400).json({ error: 'No address available for travel calculation' });
+    }
+    
+    // Calculate new travel info
+    const travelInfo = await calculateTravelTime(addressToUse);
+    
+    if (travelInfo) {
+      // Update the database
+      const updateResult = await pool.query(`
+        UPDATE surveydisco_projects 
+        SET travel_time = $1, travel_distance = $2, modified = NOW()
+        WHERE id = $3
+        RETURNING *
+      `, [travelInfo.duration, travelInfo.distance, id]);
+      
+      const updatedProject = {
+        id: updateResult.rows[0].id,
+        jobNumber: updateResult.rows[0].job_number,
+        client: updateResult.rows[0].client,
+        email: updateResult.rows[0].email,
+        phone: updateResult.rows[0].phone,
+        preparedFor: updateResult.rows[0].prepared_for,
+        address: updateResult.rows[0].address,
+        geoAddress: updateResult.rows[0].geo_address,
+        parcel: updateResult.rows[0].parcel,
+        area: updateResult.rows[0].area,
+        contact: updateResult.rows[0].contact,
+        serviceType: updateResult.rows[0].service_type,
+        costEstimate: updateResult.rows[0].cost_estimate,
+        status: updateResult.rows[0].status,
+        created: updateResult.rows[0].created,
+        modified: updateResult.rows[0].modified,
+        notes: updateResult.rows[0].notes,
+        travelTime: updateResult.rows[0].travel_time,
+        travelDistance: updateResult.rows[0].travel_distance
+      };
+      
+      res.json(updatedProject);
+    } else {
+      res.status(500).json({ error: 'Failed to calculate travel time' });
+    }
+  } catch (error) {
+    console.error('Error refreshing travel info:', error);
+    res.status(500).json({ error: 'Failed to refresh travel info' });
   }
 });
 
@@ -439,6 +605,12 @@ app.patch('/api/projects/:id', async (req, res) => {
           break;
         case 'preparedFor':
           dbUpdates.prepared_for = value;
+          break;
+        case 'travelTime':
+          dbUpdates.travel_time = value;
+          break;
+        case 'travelDistance':
+          dbUpdates.travel_distance = value;
           break;
         default:
           dbUpdates[key] = value;
@@ -480,7 +652,9 @@ app.patch('/api/projects/:id', async (req, res) => {
       status: result.rows[0].status,
       created: result.rows[0].created,
       modified: result.rows[0].modified,
-      notes: result.rows[0].notes
+      notes: result.rows[0].notes,
+      travelTime: result.rows[0].travel_time,
+      travelDistance: result.rows[0].travel_distance
     };
     res.json(updatedProject);
   } catch (error) {

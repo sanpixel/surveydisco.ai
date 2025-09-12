@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Regrid Integration Test</title>
+</head>
+<body>
+    <h1>Testing Regrid Integration Approaches</h1>
+    
+    <div>
+        <label>Test Address:</label>
+        <input type="text" id="testAddress" value="7592 Broadhurst Dr, Riverdale, GA 30296, USA">
+    </div>
+    
+    <h3>Current Approach (Search URL):</h3>
+    <button onclick="currentApproach()">🗺️ Regrid Search</button>
+    
+    <h3>Test Approach (Auto-fill):</h3>
+    <button onclick="autoFillApproach()">🗺️ Regrid Auto-fill (glmap)</button>
+    
+    <h3>Test Approach 2 (Nav Search):</h3>
+    <button onclick="autoFillApproach2()">🗺️ Regrid Auto-fill (nav)</button>
+    
+    <h3>Test Approach 3 (Iframe):</h3>
+    <button onclick="iframeApproach()">🗺️ Regrid Iframe</button>
+    <div id="iframeContainer" style="margin-top: 20px;"></div>
+    
+    <script>
+        function currentApproach() {
+            const address = document.getElementById('testAddress').value;
+            const encodedSearch = encodeURIComponent(address);
+            window.open(`https://app.regrid.com/us/search?q=${encodedSearch}`, '_blank');
+        }
+        
+        function autoFillApproach() {
+            const address = document.getElementById('testAddress').value;
+            
+            // Open Regrid in new tab
+            const regridWindow = window.open('https://app.regrid.com/', '_blank');
+            
+            // Try to auto-fill after page loads (this probably won't work due to CORS)
+            setTimeout(() => {
+                try {
+                    const searchInput = regridWindow.document.getElementById('glmap-search-query');
+                    if (searchInput) {
+                        searchInput.value = address;
+                        // Try to trigger search
+                        const event = new Event('input', { bubbles: true });
+                        searchInput.dispatchEvent(event);
+                        console.log('Auto-filled Regrid search');
+                    }
+                } catch (error) {
+                    console.log('Cross-origin access blocked:', error);
+                }
+            }, 3000);
+        }
+        
+        function autoFillApproach2() {
+            const address = document.getElementById('testAddress').value;
+            
+            // Open Regrid in new tab
+            const regridWindow = window.open('https://app.regrid.com/', '_blank');
+            
+            // Try to auto-fill with nav-search-query after page loads
+            setTimeout(() => {
+                try {
+                    const searchInput = regridWindow.document.getElementById('nav-search-query');
+                    if (searchInput) {
+                        searchInput.value = address;
+                        // Try to trigger search
+                        const event = new Event('input', { bubbles: true });
+                        searchInput.dispatchEvent(event);
+                        console.log('Auto-filled nav search');
+                    }
+                } catch (error) {
+                    console.log('Cross-origin access blocked:', error);
+                }
+            }, 3000);
+        }
+        
+        function iframeApproach() {
+            const address = document.getElementById('testAddress').value;
+            const encodedAddress = encodeURIComponent(address);
+            
+            const container = document.getElementById('iframeContainer');
+            container.innerHTML = `
+                <iframe 
+                    src="https://app.regrid.com/us/search?q=${encodedAddress}" 
+                    width="800" 
+                    height="600" 
+                    frameborder="0"
+                    style="border: 1px solid #ccc;"
+                >
+                    Your browser does not support iframes or Regrid blocks iframe embedding.
+                </iframe>
+            `;
+        }
+    </script>
+</body>
+</html>

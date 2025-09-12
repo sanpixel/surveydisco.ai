@@ -50,12 +50,40 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
     }
   };
 
-  const openInRegrid = (address, parcel) => {
-    // Try parcel first, then address
-    const searchTerm = parcel || address;
-    if (searchTerm) {
-      const encodedSearch = encodeURIComponent(searchTerm);
-      window.open(`https://app.regrid.com/us/search?q=${encodedSearch}`, '_blank');
+  const openInRegrid = (address, parcel, geoAddress) => {
+    // Copy geoAddress to clipboard if available
+    const addressToCopy = geoAddress || address;
+    if (addressToCopy) {
+      navigator.clipboard.writeText(addressToCopy).then(() => {
+        console.log('Address copied to clipboard:', addressToCopy);
+      }).catch(err => {
+        console.log('Failed to copy address:', err);
+      });
+    }
+    
+    // Open hardcoded Georgia Tech Regrid URL
+    window.open('https://app.regrid.com/us/ga#t=property&p=/us/ga/fulton/atlanta/367416', '_blank');
+  };
+
+  const refreshTravelInfo = async (project) => {
+    if (!project.address && !project.geoAddress) return;
+    
+    try {
+      const response = await fetch(`/api/projects/${project.id}/refresh-travel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const updatedProject = await response.json();
+        // Update the project in parent component
+        onUpdate(project.id, 'travelTime', updatedProject.travelTime);
+        onUpdate(project.id, 'travelDistance', updatedProject.travelDistance);
+      }
+    } catch (error) {
+      console.error('Failed to refresh travel info:', error);
     }
   };
 
@@ -129,6 +157,12 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
           <div key={project.id} className="project-card">
             <div className="card-header">
               <div className="job-number">#{project.jobNumber}</div>
+              <div className="travel-info" 
+                   onClick={() => refreshTravelInfo(project)}
+                   title="Click to refresh travel time with current traffic">
+                {project.travelTime && <span className="travel-time">🕒 {project.travelTime}</span>}
+                {project.travelDistance && <span className="travel-distance">📏 {project.travelDistance}</span>}
+              </div>
               <div className="status-badge">{project.status}</div>
             </div>
             
@@ -180,10 +214,10 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                     📍 Maps
                   </button>
                   <button 
-                    onClick={() => openInRegrid(project.address, project.parcel)}
+                    onClick={() => openInRegrid(project.address, project.parcel, project.geoAddress)}
                     className="btn-action"
                     disabled={!project.address && !project.parcel}
-                    title="Open in Regrid"
+                    title="Copy address and open Regrid"
                   >
                     🗺️ Regrid
                   </button>

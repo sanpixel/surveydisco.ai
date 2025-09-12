@@ -38,6 +38,26 @@
   font-family: 'Courier New', monospace;
 }
 
+.travel-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.travel-info:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.travel-time, .travel-distance {
+  font-weight: 500;
+}
+
 .status-badge {
   background-color: #007bff;
   color: white;
