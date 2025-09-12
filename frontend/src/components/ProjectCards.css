@@ -1,0 +1,237 @@
+.cards-container {
+  margin: 20px 0;
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  padding: 0;
+}
+
+.project-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.project-card:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.job-number {
+  font-size: 16px;
+  font-weight: bold;
+  color: #495057;
+  font-family: 'Courier New', monospace;
+}
+
+.status-badge {
+  background-color: #007bff;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.card-body {
+  margin-bottom: 12px;
+}
+
+.field {
+  display: flex;
+  margin-bottom: 6px;
+  align-items: flex-start;
+}
+
+.field-label {
+  font-weight: 600;
+  color: #6c757d;
+  font-size: 11px;
+  min-width: 70px;
+  margin-right: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field-value {
+  font-size: 13px;
+  color: #495057;
+  flex: 1;
+  word-wrap: break-word;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.field-value.editable:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.field-value.readonly {
+  cursor: default;
+  color: #6c757d;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+}
+
+.edit-input-card {
+  flex: 1;
+  border: 1px solid #007bff;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 13px;
+  outline: none;
+  background-color: white;
+}
+
+.card-footer {
+  padding-top: 8px;
+  border-top: 1px solid #f8f9fa;
+  margin-bottom: 8px;
+}
+
+.card-footer .field {
+  margin-bottom: 4px;
+}
+
+.card-notes {
+  border-top: 1px solid #f8f9fa;
+  padding-top: 8px;
+}
+
+.card-notes .field-value {
+  font-size: 12px;
+  color: #6c757d;
+  font-style: italic;
+  max-height: 60px;
+  overflow-y: auto;
+}
+
+.card-actions {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f8f9fa;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-action, .btn-delete {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-action {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-action:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.btn-action:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover {
+  background-color: #c82333;
+}
+
+.delete-prompt {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+}
+
+.password-input:focus {
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+}
+
+.btn-confirm, .btn-cancel {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-confirm {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-confirm:hover {
+  background-color: #c82333;
+}
+
+.btn-cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-cancel:hover {
+  background-color: #5a6268;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+  font-style: italic;
+  font-size: 16px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .project-card {
+    padding: 12px;
+  }
+}

@@ -1,0 +1,142 @@
+.table-container {
+  margin: 20px 0;
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  background: white;
+}
+
+.project-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 1000px;
+}
+
+.project-table th {
+  background-color: #f8f9fa;
+  padding: 6px 4px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
+  white-space: nowrap;
+  color: #495057;
+  font-size: 11px;
+}
+
+.project-table td {
+  padding: 0;
+  border-bottom: 1px solid #e9ecef;
+  vertical-align: middle;
+}
+
+.project-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.cell {
+  padding: 4px 3px;
+  min-height: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  word-wrap: break-word;
+  max-width: 120px;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.cell.editable:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.cell.readonly {
+  cursor: default;
+  color: #6c757d;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+}
+
+.edit-input {
+  width: 100%;
+  border: 1px solid #007bff;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: 11px;
+  outline: none;
+  background-color: white;
+}
+
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  font-size: 16px;
+}
+
+/* Column-specific widths */
+.project-table th:nth-child(1), /* Job # */
+.project-table td:nth-child(1) {
+  width: 55px;
+  min-width: 55px;
+}
+
+.project-table th:nth-child(2), /* Client */
+.project-table td:nth-child(2) {
+  width: 80px;
+  min-width: 80px;
+}
+
+.project-table th:nth-child(3), /* Address */
+.project-table td:nth-child(3) {
+  width: 120px;
+  min-width: 120px;
+}
+
+.project-table th:nth-child(4), /* Parcel */
+.project-table td:nth-child(4) {
+  width: 80px;
+  min-width: 80px;
+}
+
+.project-table th:nth-child(5), /* Area */
+.project-table td:nth-child(5) {
+  width: 50px;
+  min-width: 50px;
+}
+
+.project-table th:nth-child(6), /* Contact */
+.project-table td:nth-child(6) {
+  width: 100px;
+  min-width: 100px;
+}
+
+.project-table th:nth-child(7), /* Service Type */
+.project-table td:nth-child(7) {
+  width: 70px;
+  min-width: 70px;
+}
+
+.project-table th:nth-child(8), /* Status */
+.project-table td:nth-child(8) {
+  width: 55px;
+  min-width: 55px;
+}
+
+.project-table th:nth-child(9), /* Created */
+.project-table td:nth-child(9) {
+  width: 85px;
+  min-width: 85px;
+}
+
+.project-table th:nth-child(10), /* Modified */
+.project-table td:nth-child(10) {
+  width: 85px;
+  min-width: 85px;
+}
+
+.project-table th:nth-child(11), /* Notes */
+.project-table td:nth-child(11) {
+  width: auto;
+  min-width: 100px;
+}
