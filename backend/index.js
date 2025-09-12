@@ -5,10 +5,10 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const { createClient } = require('@supabase/supabase-js');
 const { Pool } = require('pg');
 
-// Initialize Supabase client with service role key
+// Initialize Supabase client with anon key BUT MAYBE IT NEEDS SR Key?
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_ANON_KEY
 );
 
 const app = express();
