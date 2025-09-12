@@ -619,8 +619,8 @@ app.delete('/api/todos/:id', async (req, res) => {
 // Serve React static files
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
-// Catch-all handler for React Router  
-app.get('/*', (req, res) => {
+// Catch-all handler for React Router (avoid path-to-regexp issues)
+app.use('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
 
