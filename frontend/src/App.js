@@ -7,9 +7,11 @@ import TodoCard from './components/TodoCard';
 function App() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [webDevText, setWebDevText] = useState('Each field in Job Cards below are editable. TODO card holds enhancement ideas.');
 
   useEffect(() => {
     loadProjects();
+    loadWebDevText();
   }, []);
 
   const loadProjects = async () => {
@@ -23,6 +25,36 @@ function App() {
       console.error('Error loading projects:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadWebDevText = async () => {
+    try {
+      const response = await fetch('/api/settings/webdevtxt');
+      if (response.ok) {
+        const data = await response.json();
+        setWebDevText(data.value);
+      }
+    } catch (error) {
+      console.error('Error loading web dev text:', error);
+    }
+  };
+
+  const updateWebDevText = async (newText) => {
+    try {
+      const response = await fetch('/api/settings/webdevtxt', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ value: newText }),
+      });
+      
+      if (response.ok) {
+        setWebDevText(newText);
+      }
+    } catch (error) {
+      console.error('Error updating web dev text:', error);
     }
   };
 
@@ -106,9 +138,15 @@ function App() {
             cursor: 'text'
           }}
           onFocus={(e) => e.target.style.border = '1px dashed rgba(255,255,255,0.5)'}
-          onBlur={(e) => e.target.style.border = '1px dashed transparent'}
+          onBlur={(e) => {
+            e.target.style.border = '1px dashed transparent';
+            const newText = e.target.textContent;
+            if (newText !== webDevText) {
+              updateWebDevText(newText);
+            }
+          }}
         >
-          Each field in Job Cards below are editable. TODO card holds enhancement ideas.
+          {webDevText}
         </div>
       </header>
       <main className="App-main">

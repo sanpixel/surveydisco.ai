@@ -260,15 +260,33 @@ async function generateJobNumber() {
 
 // OpenAI text extraction with regex fallback
 async function extractWithOpenAI(text) {
+  const DEBUG_OPENAI = true;
+  
   try {
+    if (DEBUG_OPENAI) console.log('🤖 Starting OpenAI extraction...');
+    
     if (!process.env.OPENAI_API_KEY) {
+      if (DEBUG_OPENAI) console.log('❌ OpenAI API key not available');
       throw new Error('OpenAI API key not available');
     }
+    if (DEBUG_OPENAI) console.log('✅ OpenAI API key found');
 
     // Read prompt from file
     const promptPath = path.join(__dirname, 'prompt.txt');
-    const promptTemplate = fs.readFileSync(promptPath, 'utf8');
+    if (DEBUG_OPENAI) console.log('📂 Reading prompt from:', promptPath);
     
+    if (!fs.existsSync(promptPath)) {
+      if (DEBUG_OPENAI) console.log('❌ Prompt file not found at:', promptPath);
+      throw new Error('Prompt file not found');
+    }
+    
+    const promptTemplate = fs.readFileSync(promptPath, 'utf8');
+    if (DEBUG_OPENAI) {
+      console.log('✅ Prompt loaded, length:', promptTemplate.length);
+      console.log('📝 Input text preview:', text.substring(0, 100) + '...');
+    }
+    
+    if (DEBUG_OPENAI) console.log('🚀 Sending request to OpenAI...');
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
@@ -284,11 +302,17 @@ async function extractWithOpenAI(text) {
       temperature: 0.1
     });
 
+    if (DEBUG_OPENAI) console.log('✅ OpenAI response received');
     const response = completion.choices[0].message.content;
-    return JSON.parse(response);
+    if (DEBUG_OPENAI) console.log('📄 Raw OpenAI response:', response);
+    
+    const parsed = JSON.parse(response);
+    if (DEBUG_OPENAI) console.log('✅ JSON parsed successfully:', parsed);
+    return parsed;
     
   } catch (error) {
-    console.error('OpenAI extraction failed:', error);
+    console.error('❌ OpenAI extraction failed:', error.message);
+    if (DEBUG_OPENAI) console.error('🔍 Full error:', error);
     return null;
   }
 }
@@ -776,6 +800,45 @@ app.delete('/api/projects/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting project:', error);
     res.status(500).json({ error: 'Failed to delete project' });
+  }
+});
+
+// Settings API endpoints
+app.get('/api/settings/:key', async (req, res) => {
+  const { key } = req.params;
+  
+  try {
+    const result = await pool.query('SELECT setting_value FROM surveydisco_settings WHERE setting_key = $1', [key]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Setting not found' });
+    }
+    
+    res.json({ value: result.rows[0].setting_value });
+  } catch (error) {
+    console.error('Error fetching setting:', error);
+    res.status(500).json({ error: 'Failed to fetch setting' });
+  }
+});
+
+app.patch('/api/settings/:key', async (req, res) => {
+  const { key } = req.params;
+  const { value } = req.body;
+  
+  try {
+    const result = await pool.query(
+      'UPDATE surveydisco_settings SET setting_value = $1, modified = NOW() WHERE setting_key = $2 RETURNING *',
+      [value, key]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Setting not found' });
+    }
+    
+    res.json({ value: result.rows[0].setting_value });
+  } catch (error) {
+    console.error('Error updating setting:', error);
+    res.status(500).json({ error: 'Failed to update setting' });
   }
 });
 
