@@ -273,6 +273,8 @@ async function extractWithOpenAI(text) {
 
     // Read prompt from file
     const promptPath = path.join(__dirname, 'prompt.txt');
+    console.log('📂 Prompt path:', promptPath);
+    console.log('📋 Files in __dirname:', fs.readdirSync(__dirname));
     if (DEBUG_OPENAI) console.log('📂 Reading prompt from:', promptPath);
     
     if (!fs.existsSync(promptPath)) {
@@ -436,6 +438,8 @@ function extractWithRegex(text) {
 }
 
 async function parseProjectText(text) {
+  console.log('📝 parseProjectText called with text length:', text.length);
+  
   const project = {
     jobNumber: await generateJobNumber(),
     client: '',
@@ -456,7 +460,9 @@ async function parseProjectText(text) {
   let usedOpenAI = false;
 
   // Try OpenAI first
+  console.log('🤖 Calling OpenAI extraction...');
   const openaiResult = await extractWithOpenAI(text);
+  console.log('📊 OpenAI result:', openaiResult ? 'SUCCESS' : 'FAILED');
   if (openaiResult) {
     project.client = openaiResult.client || '';
     project.email = openaiResult.email || '';
