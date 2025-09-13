@@ -1,0 +1,18 @@
+Please carefully review this scattered data and extract the following fields for a land surveying project.
+
+Return the data in JSON format with these exact field names:
+
+{
+  "client": "Name of the client or person requesting service",
+  "email": "Email address if present", 
+  "phone": "Phone number if present",
+  "preparedFor": "Who the survey/work is being prepared for",
+  "address": "Property address where work will be performed",
+  "parcel": "Parcel number, APN, or PIN if mentioned",
+  "area": "Property size in acres if mentioned", 
+  "serviceType": "Type of land surveying service needed - focus on surveying terms like boundary survey, topographic survey, ALTA survey, legal description, elevation certificate, subdivision, plat, property corners, fence location, etc.",
+  "costEstimate": "Any dollar amount mentioned as estimate or cost"
+}
+
+If a field cannot be determined from the text, return an empty string for that field.
+Focus on land surveying context, especially for serviceType field.

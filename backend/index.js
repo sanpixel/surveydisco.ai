@@ -1,9 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const { createClient } = require('@supabase/supabase-js');
 const { Pool } = require('pg');
+const OpenAI = require('openai');
 
 // Initialize Supabase client with anon key BUT MAYBE IT NEEDS SR Key?
 const supabase = createClient(
@@ -20,6 +22,11 @@ console.log('Starting server on port:', PORT);
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
+});
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 // Initialize database table
@@ -251,6 +258,159 @@ async function generateJobNumber() {
   }
 }
 
+// OpenAI text extraction with regex fallback
+async function extractWithOpenAI(text) {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key not available');
+    }
+
+    // Read prompt from file
+    const promptPath = path.join(__dirname, 'prompt.txt');
+    const promptTemplate = fs.readFileSync(promptPath, 'utf8');
+    
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: promptTemplate
+        },
+        {
+          role: "user", 
+          content: text
+        }
+      ],
+      temperature: 0.1
+    });
+
+    const response = completion.choices[0].message.content;
+    return JSON.parse(response);
+    
+  } catch (error) {
+    console.error('OpenAI extraction failed:', error);
+    return null;
+  }
+}
+
+// Regex fallback extraction
+function extractWithRegex(text) {
+  const extraction = {
+    client: '',
+    email: '',
+    phone: '',
+    preparedFor: '',
+    address: '',
+    parcel: '',
+    area: '',
+    serviceType: '',
+    costEstimate: ''
+  };
+
+  // Extract addresses
+  const addressRegex = /\b\d+\s+[A-Za-z0-9\s.,'-]+(Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Boulevard|Blvd|Way|Place|Pl|Court|Ct|Circle|Cir|Trail|Tr|Parkway|Pkwy)\b/gi;
+  const addressMatch = text.match(addressRegex);
+  if (addressMatch) {
+    const validAddress = addressMatch.find(addr => !addr.includes('$'));
+    if (validAddress) {
+      extraction.address = validAddress.trim();
+    }
+  } else {
+    const simpleAddressRegex = /\b\d+\s+[A-Za-z\s]+\b/g;
+    const simpleMatch = text.match(simpleAddressRegex);
+    if (simpleMatch) {
+      const validMatches = simpleMatch.filter(match => 
+        !match.includes('$') && 
+        match.length > 10 && 
+        !/^\d+\s*$/.test(match)
+      );
+      if (validMatches.length > 0) {
+        extraction.address = validMatches.reduce((a, b) => a.length > b.length ? a : b).trim();
+      }
+    }
+  }
+
+  // Extract phone numbers
+  const phoneRegex = /\b\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})\b/g;
+  const phoneMatch = text.match(phoneRegex);
+  if (phoneMatch) {
+    extraction.phone = phoneMatch[0].trim();
+  }
+
+  // Extract emails
+  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
+  const emailMatch = text.match(emailRegex);
+  if (emailMatch) {
+    extraction.email = emailMatch[0].trim();
+  }
+
+  // Extract parcel numbers
+  const parcelRegex = /\b(?:parcel|apn|pin)\s*[#:]?\s*([0-9-]+)\b/gi;
+  const parcelMatch = text.match(parcelRegex);
+  if (parcelMatch) {
+    extraction.parcel = parcelMatch[0].replace(/.*?([0-9-]+)$/, '$1');
+  }
+
+  // Extract area
+  const areaRegex = /\b([0-9]+(?:\.[0-9]+)?)\s*(?:ac|acres?|AC|ACRES?)\b/gi;
+  const areaMatch = text.match(areaRegex);
+  if (areaMatch) {
+    extraction.area = areaMatch[0].trim();
+  }
+
+  // Extract cost
+  const costRegex = /\$([0-9,]+(?:\.[0-9]{2})?)/g;
+  const costMatch = text.match(costRegex);
+  if (costMatch) {
+    extraction.costEstimate = costMatch[0].trim();
+  }
+
+  // Extract client names
+  const nameRegex = /\b([A-Z][a-z]+\s+[A-Z][a-z]+)\b/g;
+  const nameMatch = text.match(nameRegex);
+  if (nameMatch) {
+    extraction.client = nameMatch[0].trim();
+  }
+
+  // Extract prepared for
+  const preparedForRegex = /(?:prepared for|prep for|for)\s*[:]?\s*([A-Za-z\s]+?)(?:\n|\.|$)/gi;
+  const preparedForMatch = text.match(preparedForRegex);
+  if (preparedForMatch) {
+    const preparedForText = preparedForMatch[0].replace(/(?:prepared for|prep for|for)\s*[:]?\s*/i, '').trim();
+    if (preparedForText.length > 2) {
+      extraction.preparedFor = preparedForText;
+    }
+  }
+
+  // Determine service type
+  const lowerText = text.toLowerCase();
+  if (lowerText.includes('boundary survey') || lowerText.includes('boundary line')) {
+    extraction.serviceType = 'Boundary Survey';
+  } else if (lowerText.includes('topographic survey') || lowerText.includes('topo survey')) {
+    extraction.serviceType = 'Topographic Survey';
+  } else if (lowerText.includes('alta survey') || lowerText.includes('alta/nsps')) {
+    extraction.serviceType = 'ALTA Survey';
+  } else if (lowerText.includes('legal description') || lowerText.includes('legal desc')) {
+    extraction.serviceType = 'Legal Description';
+  } else if (lowerText.includes('elevation certificate') || lowerText.includes('elev cert')) {
+    extraction.serviceType = 'Elevation Certificate';
+  } else if (lowerText.includes('subdivision') || lowerText.includes('plat')) {
+    extraction.serviceType = 'Subdivision';
+  } else if (lowerText.includes('survey')) {
+    extraction.serviceType = 'Survey';
+  } else if (lowerText.includes('quote') || lowerText.includes('estimate')) {
+    extraction.serviceType = 'Quote Request';
+  } else if (lowerText.includes('consultation') || lowerText.includes('consult')) {
+    extraction.serviceType = 'Consultation';
+  } else if (extraction.address || extraction.parcel) {
+    extraction.serviceType = 'Survey';
+  } else {
+    extraction.serviceType = 'General Inquiry';
+  }
+
+  return extraction;
+}
+
 async function parseProjectText(text) {
   const project = {
     jobNumber: await generateJobNumber(),
@@ -266,140 +426,67 @@ async function parseProjectText(text) {
     serviceType: '',
     costEstimate: '',
     status: 'New',
-    notes: text // Store original text in notes
+    notes: text
   };
 
-  // Extract addresses (improved patterns, exclude dollar amounts)
-  const addressRegex = /\b\d+\s+[A-Za-z0-9\s.,'-]+(Street|St|Avenue|Ave|Road|Rd|Drive|Dr|Lane|Ln|Boulevard|Blvd|Way|Place|Pl|Court|Ct|Circle|Cir|Trail|Tr|Parkway|Pkwy)\b/gi;
-  const addressMatch = text.match(addressRegex);
-  if (addressMatch) {
-    // Filter out matches that contain dollar signs
-    const validAddress = addressMatch.find(addr => !addr.includes('$'));
-    if (validAddress) {
-      project.address = validAddress.trim();
-    }
-  } else {
-    // Try simpler pattern for addresses without full street types (exclude $ signs)
-    const simpleAddressRegex = /\b\d+\s+[A-Za-z\s]+\b/g;
-    const simpleMatch = text.match(simpleAddressRegex);
-    if (simpleMatch) {
-      // Filter out dollar amounts and find the longest valid address
-      const validMatches = simpleMatch.filter(match => 
-        !match.includes('$') && 
-        match.length > 10 && 
-        !/^\d+\s*$/.test(match) // Not just numbers
-      );
-      if (validMatches.length > 0) {
-        const longestMatch = validMatches.reduce((a, b) => a.length > b.length ? a : b);
-        project.address = longestMatch.trim();
-      }
-    }
+  let usedOpenAI = false;
+
+  // Try OpenAI first
+  const openaiResult = await extractWithOpenAI(text);
+  if (openaiResult) {
+    project.client = openaiResult.client || '';
+    project.email = openaiResult.email || '';
+    project.phone = openaiResult.phone || '';
+    project.preparedFor = openaiResult.preparedFor || '';
+    project.address = openaiResult.address || '';
+    project.parcel = openaiResult.parcel || '';
+    project.area = openaiResult.area || '';
+    project.serviceType = openaiResult.serviceType || '';
+    project.costEstimate = openaiResult.costEstimate || '';
+    usedOpenAI = true;
   }
 
-  // Extract phone numbers
-  const phoneRegex = /\b\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})\b/g;
-  const phoneMatch = text.match(phoneRegex);
-  if (phoneMatch) {
-    project.phone = phoneMatch[0].trim();
-    project.contact = phoneMatch[0].trim(); // Keep for backward compatibility
-  }
-
-  // Extract emails
-  const emailRegex = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g;
-  const emailMatch = text.match(emailRegex);
-  if (emailMatch) {
-    project.email = emailMatch[0].trim();
-    project.contact = project.contact ? project.contact + ', ' + emailMatch[0] : emailMatch[0];
-  }
-
-  // Extract parcel numbers (various formats)
-  const parcelRegex = /\b(?:parcel|apn|pin)\s*[#:]?\s*([0-9-]+)\b/gi;
-  const parcelMatch = text.match(parcelRegex);
-  if (parcelMatch) {
-    const parcelNumber = parcelMatch[0].replace(/.*?([0-9-]+)$/, '$1');
-    project.parcel = parcelNumber;
-  }
-
-  // Extract area/acreage information
-  const areaRegex = /\b([0-9]+(?:\.[0-9]+)?)\s*(?:ac|acres?|AC|ACRES?)\b/gi;
-  const areaMatch = text.match(areaRegex);
-  if (areaMatch) {
-    project.area = areaMatch[0].trim();
-  }
-
-  // Extract cost estimates (dollar amounts)
-  const costRegex = /\$([0-9,]+(?:\.[0-9]{2})?)/g;
-  const costMatch = text.match(costRegex);
-  if (costMatch) {
-    project.costEstimate = costMatch[0].trim();
-  }
-
-  // Extract potential client names (first capitalized words before common survey terms)
-  const nameRegex = /\b([A-Z][a-z]+\s+[A-Z][a-z]+)\b/g;
-  const nameMatch = text.match(nameRegex);
-  if (nameMatch) {
-    project.client = nameMatch[0].trim();
-  }
-
-  // Extract "prepared for" information
-  const preparedForRegex = /(?:prepared for|prep for|for)\s*[:]?\s*([A-Za-z\s]+?)(?:\n|\.|$)/gi;
-  const preparedForMatch = text.match(preparedForRegex);
-  if (preparedForMatch) {
-    const preparedForText = preparedForMatch[0].replace(/(?:prepared for|prep for|for)\s*[:]?\s*/i, '').trim();
-    if (preparedForText.length > 2) {
-      project.preparedFor = preparedForText;
-    }
-  }
-
-  // Determine service type based on keywords (prioritize survey-related)
-  const lowerText = text.toLowerCase();
+  // Use regex fallback for empty fields
+  const regexResult = extractWithRegex(text);
   
-  // Survey-specific types (highest priority)
-  if (lowerText.includes('boundary survey') || lowerText.includes('boundary line')) {
-    project.serviceType = 'Boundary Survey';
-  } else if (lowerText.includes('topographic survey') || lowerText.includes('topo survey')) {
-    project.serviceType = 'Topographic Survey';
-  } else if (lowerText.includes('alta survey') || lowerText.includes('alta/nsps')) {
-    project.serviceType = 'ALTA Survey';
-  } else if (lowerText.includes('legal description') || lowerText.includes('legal desc')) {
-    project.serviceType = 'Legal Description';
-  } else if (lowerText.includes('elevation certificate') || lowerText.includes('elev cert')) {
-    project.serviceType = 'Elevation Certificate';
-  } else if (lowerText.includes('subdivision') || lowerText.includes('plat')) {
-    project.serviceType = 'Subdivision';
-  }
-  // General survey terms
-  else if (lowerText.includes('survey')) {
-    project.serviceType = 'Survey';
-  }
-  // Non-survey services
-  else if (lowerText.includes('quote') || lowerText.includes('estimate')) {
-    project.serviceType = 'Quote Request';
-  } else if (lowerText.includes('consultation') || lowerText.includes('consult')) {
-    project.serviceType = 'Consultation';
-  }
-  // Default - assume survey related if address/parcel mentioned
-  else if (project.address || project.parcel) {
-    project.serviceType = 'Survey';
-  } else {
-    project.serviceType = 'General Inquiry';
+  if (!project.client && regexResult.client) project.client = regexResult.client;
+  if (!project.email && regexResult.email) project.email = regexResult.email;
+  if (!project.phone && regexResult.phone) project.phone = regexResult.phone;
+  if (!project.preparedFor && regexResult.preparedFor) project.preparedFor = regexResult.preparedFor;
+  if (!project.address && regexResult.address) project.address = regexResult.address;
+  if (!project.parcel && regexResult.parcel) project.parcel = regexResult.parcel;
+  if (!project.area && regexResult.area) project.area = regexResult.area;
+  if (!project.serviceType && regexResult.serviceType) project.serviceType = regexResult.serviceType;
+  if (!project.costEstimate && regexResult.costEstimate) project.costEstimate = regexResult.costEstimate;
+
+  // Set status based on method used
+  if (!usedOpenAI) {
+    project.status = 'Regex';
   }
 
-  // Try to validate/standardize address with Google Maps API (with fallback)
+  // Set contact field for backward compatibility
+  if (project.phone) {
+    project.contact = project.phone;
+    if (project.email) {
+      project.contact += ', ' + project.email;
+    }
+  } else if (project.email) {
+    project.contact = project.email;
+  }
+
+  // Validate address with Google Maps API
   if (project.address) {
     try {
       const validatedAddress = await validateAddress(project.address);
       if (validatedAddress) {
         project.geoAddress = validatedAddress;
       }
-      // If validation fails, geoAddress stays empty, original address is preserved
     } catch (error) {
-      // API failed, keep geoAddress empty
       console.log('Address validation failed, keeping original address');
     }
   }
 
-  // Calculate travel time and distance if we have an address
+  // Calculate travel time and distance
   const addressToUse = project.geoAddress || project.address;
   if (addressToUse) {
     try {
