@@ -255,6 +255,14 @@
   margin-left: 8px;
 }
 
+.tag-badge.editable {
+  cursor: pointer;
+}
+
+.tag-badge.editable:hover {
+  background-color: #5a6268;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .cards-grid {

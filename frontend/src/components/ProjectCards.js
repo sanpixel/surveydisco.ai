@@ -164,7 +164,13 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                 {project.travelDistance && <span className="travel-distance">📏 {project.travelDistance}</span>}
               </div>
               <div className="status-badge">{project.status}</div>
-              {(project.tags || 'tag') && <div className="tag-badge">{project.tags || 'tag'}</div>}
+              <div 
+                className="tag-badge editable" 
+                onClick={() => startEdit(project.id, 'tags', project.tags)}
+                title="Click to edit tag"
+              >
+                {project.tags || 'Tag'}
+              </div>
             </div>
             
             <div className="card-body">
@@ -175,10 +181,10 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
               {renderField(project, 'address', project.address, 'Address')}
               {project.geoAddress && renderField(project, 'geoAddress', project.geoAddress, 'Geo Address')}
               {renderField(project, 'parcel', project.parcel, 'Parcel/APN')}
-              {renderField(project, 'area', project.area, 'Area')}
+              {renderField(project, 'area', project.area, 'Area (ACERS)')}
               {renderField(project, 'serviceType', project.serviceType, 'Service')}
               {renderField(project, 'costEstimate', project.costEstimate, 'Cost Est.')}
-              {renderField(project, 'tags', project.tags, 'Tags')}
+              {renderField(project, 'action', project.action, 'Action')}
             </div>
 
             <div className="card-footer">
