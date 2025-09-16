@@ -561,7 +561,8 @@ app.get('/api/projects', async (req, res) => {
       notes: row.notes,
       travelTime: row.travel_time,
       travelDistance: row.travel_distance,
-      tags: row.tags
+      tags: row.tags,
+      action: row.action
     }));
     res.json(projects);
   } catch (error) {
@@ -624,7 +625,8 @@ app.post('/api/projects/parse', async (req, res) => {
       notes: result.rows[0].notes,
       travelTime: result.rows[0].travel_time,
       travelDistance: result.rows[0].travel_distance,
-      tags: result.rows[0].tags
+      tags: result.rows[0].tags,
+      action: result.rows[0].action
     };
     
     res.json(savedProject);
@@ -685,7 +687,8 @@ app.post('/api/projects/:id/refresh-travel', async (req, res) => {
         notes: updateResult.rows[0].notes,
         travelTime: updateResult.rows[0].travel_time,
         travelDistance: updateResult.rows[0].travel_distance,
-        tags: updateResult.rows[0].tags
+        tags: updateResult.rows[0].tags,
+        action: updateResult.rows[0].action
       };
       
       res.json(updatedProject);
@@ -775,7 +778,8 @@ app.patch('/api/projects/:id', async (req, res) => {
       notes: result.rows[0].notes,
       travelTime: result.rows[0].travel_time,
       travelDistance: result.rows[0].travel_distance,
-      tags: result.rows[0].tags
+      tags: result.rows[0].tags,
+      action: result.rows[0].action
     };
     res.json(updatedProject);
   } catch (error) {
