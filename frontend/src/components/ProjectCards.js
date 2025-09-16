@@ -8,8 +8,10 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
   const [password, setPassword] = useState('');
 
   const startEdit = (projectId, field, currentValue) => {
+    console.log('startEdit called:', { projectId, field, currentValue });
     setEditingCell({ projectId, field });
     setEditValue(currentValue || '');
+    console.log('editingCell set to:', { projectId, field });
   };
 
   const finishEdit = () => {
@@ -164,13 +166,30 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                 {project.travelDistance && <span className="travel-distance">📏 {project.travelDistance}</span>}
               </div>
               <div className="status-badge">{project.status}</div>
-              <div 
-                className="tag-badge editable" 
-                onClick={() => startEdit(project.id, 'tags', project.tags)}
-                title="Click to edit tag"
-              >
-                {project.tags || 'Tag'}
-              </div>
+              {editingCell?.projectId === project.id && editingCell?.field === 'tags' ? (
+                <input
+                  type="text"
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  onBlur={finishEdit}
+                  onKeyDown={handleKeyDown}
+                  autoFocus
+                  className="tag-badge-input"
+                  style={{ marginLeft: '8px', padding: '4px 8px', fontSize: '11px', borderRadius: '12px', border: '1px solid #007bff' }}
+                />
+              ) : (
+                <div 
+                  className="tag-badge editable" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Tag badge clicked!', project.id, project.tags);
+                    startEdit(project.id, 'tags', project.tags);
+                  }}
+                  title="Click to edit tag"
+                >
+                  {project.tags || 'Tag'}
+                </div>
+              )}
             </div>
             
             <div className="card-body">
