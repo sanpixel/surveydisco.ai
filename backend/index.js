@@ -560,7 +560,8 @@ app.get('/api/projects', async (req, res) => {
       modified: row.modified,
       notes: row.notes,
       travelTime: row.travel_time,
-      travelDistance: row.travel_distance
+      travelDistance: row.travel_distance,
+      tags: row.tags
     }));
     res.json(projects);
   } catch (error) {
