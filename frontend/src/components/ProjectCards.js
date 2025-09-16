@@ -164,6 +164,7 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                 {project.travelDistance && <span className="travel-distance">📏 {project.travelDistance}</span>}
               </div>
               <div className="status-badge">{project.status}</div>
+              {(project.tags || 'tag') && <div className="tag-badge">{project.tags || 'tag'}</div>}
             </div>
             
             <div className="card-body">
@@ -177,6 +178,7 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
               {renderField(project, 'area', project.area, 'Area')}
               {renderField(project, 'serviceType', project.serviceType, 'Service')}
               {renderField(project, 'costEstimate', project.costEstimate, 'Cost Est.')}
+              {renderField(project, 'tags', project.tags, 'Tags')}
             </div>
 
             <div className="card-footer">
