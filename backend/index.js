@@ -623,7 +623,8 @@ app.post('/api/projects/parse', async (req, res) => {
       modified: result.rows[0].modified,
       notes: result.rows[0].notes,
       travelTime: result.rows[0].travel_time,
-      travelDistance: result.rows[0].travel_distance
+      travelDistance: result.rows[0].travel_distance,
+      tags: result.rows[0].tags
     };
     
     res.json(savedProject);
@@ -683,7 +684,8 @@ app.post('/api/projects/:id/refresh-travel', async (req, res) => {
         modified: updateResult.rows[0].modified,
         notes: updateResult.rows[0].notes,
         travelTime: updateResult.rows[0].travel_time,
-        travelDistance: updateResult.rows[0].travel_distance
+        travelDistance: updateResult.rows[0].travel_distance,
+        tags: updateResult.rows[0].tags
       };
       
       res.json(updatedProject);
@@ -772,7 +774,8 @@ app.patch('/api/projects/:id', async (req, res) => {
       modified: result.rows[0].modified,
       notes: result.rows[0].notes,
       travelTime: result.rows[0].travel_time,
-      travelDistance: result.rows[0].travel_distance
+      travelDistance: result.rows[0].travel_distance,
+      tags: result.rows[0].tags
     };
     res.json(updatedProject);
   } catch (error) {
