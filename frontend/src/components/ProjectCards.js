@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './ProjectCards.css';
+import { openOneDriveFolder } from '../services/onedriveService';
 
 const ProjectCards = ({ projects, onUpdate, onDelete }) => {
   const [editingCell, setEditingCell] = useState(null);
@@ -65,6 +66,10 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
     
     // Open hardcoded Georgia Tech Regrid URL
     window.open('https://app.regrid.com/us/ga#t=property&p=/us/ga/fulton/atlanta/367416', '_blank');
+  };
+
+  const handleOneDriveClick = async (project) => {
+    await openOneDriveFolder(project);
   };
 
   const refreshTravelInfo = async (project) => {
@@ -247,6 +252,13 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                     title="Copy address and open Regrid"
                   >
                     🗺️ Regrid
+                  </button>
+                  <button 
+                    onClick={() => handleOneDriveClick(project)}
+                    className="btn-action onedrive-button"
+                    title="Open OneDrive folder"
+                  >
+                    📁 OneDrive
                   </button>
                   <button 
                     onClick={() => handleDeleteClick(project.id)}

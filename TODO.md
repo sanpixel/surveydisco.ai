@@ -1,11 +1,86 @@
 # SurveyDisco.ai TODO
 
 ## High Priority
+- [ ] OneDrive integration for file storage and management
+  - Set up Microsoft Graph API access for OneDrive
+  - Create project folders automatically in OneDrive
+  - Upload and organize survey documents, photos, and reports
+  - Link OneDrive files to project cards
+  - Sync project status with file organization
+
 - [ ] Monitor email address for auto-updating projects
   - Set up email monitoring service (IMAP/POP3 or webhook)
   - Parse incoming emails for project information
   - Automatically create new projects from email content
   - Send confirmation emails back to clients
+
+### OneDrive Integration Detailed Steps
+
+#### Phase 1: Microsoft Graph API Setup
+- [ ] Register app in Azure Active Directory (Microsoft Entra ID)
+- [ ] Configure API permissions for OneDrive access:
+  - [ ] `Files.ReadWrite` - Read and write user files
+  - [ ] `Files.ReadWrite.All` - Read and write all files (if needed for shared drives)
+- [ ] Set up OAuth 2.0 authentication flow
+- [ ] Install Microsoft Graph SDK (`npm install @azure/msal-node @microsoft/microsoft-graph-client`)
+- [ ] Configure redirect URIs and client secrets
+
+#### Phase 2: Authentication & Authorization
+- [ ] Implement OAuth login flow for OneDrive access
+- [ ] Store refresh tokens securely in database
+- [ ] Add user authentication state management
+- [ ] Handle token refresh automatically
+- [ ] Add OneDrive connection status to user settings
+
+#### Phase 3: Project Folder Management
+- [ ] Work with existing OneDrive structure:
+  - [ ] Base path: `/surveydisco/` (existing main directory)
+  - [ ] Create project folders: `/surveydisco/{sanitized_geoaddress}/` where geoaddress = geo_address || address
+  - [ ] Sanitize folder names: replace commas, slashes, and special chars with dashes or underscores
+  - [ ] Simple flat structure - no subfolders, just files directly in project folder
+  - [ ] Example: "123 Main St, Atlanta, GA" → "123-Main-St-Atlanta-GA"
+- [ ] Link OneDrive folder to project record in database
+- [ ] Add OneDrive folder URL to project cards
+- [ ] Sync folder creation when new projects are added
+
+#### Phase 4: File Upload & Organization
+- [ ] Drag-and-drop file upload interface on project cards
+- [ ] Simple file storage - all files go directly into project folder
+- [ ] File naming convention: `{jobNumber}_{filename}` to avoid conflicts
+- [ ] File preview and download links in project interface
+- [ ] Basic file operations (upload, download, delete)
+
+#### Phase 5: Database Schema Updates
+- [ ] Add OneDrive fields to `surveydisco_projects` table:
+  - [ ] `onedrive_folder_id` VARCHAR(255) - OneDrive folder ID
+  - [ ] `onedrive_folder_url` TEXT - Direct link to project folder
+  - [ ] `onedrive_sync_status` ENUM('pending', 'synced', 'error')
+  - [ ] `onedrive_last_sync` TIMESTAMP
+- [ ] Create `project_files` table:
+  - [ ] `id` SERIAL PRIMARY KEY
+  - [ ] `project_id` INTEGER (FK to surveydisco_projects)
+  - [ ] `onedrive_file_id` VARCHAR(255)
+  - [ ] `file_name` VARCHAR(255)
+  - [ ] `file_type` VARCHAR(50)
+  - [ ] `file_size` BIGINT
+  - [ ] `upload_date` TIMESTAMP
+  - [ ] `file_category` ENUM('document', 'photo', 'report', 'correspondence', 'other')
+
+#### Phase 6: File Management Interface
+- [ ] Add "Files" section to project cards
+- [ ] Display file count and total size per project
+- [ ] File list with preview thumbnails
+- [ ] Upload progress indicators
+- [ ] File sharing and permission management
+- [ ] Search files across all projects
+
+#### Phase 7: Advanced Features
+- [ ] Automatic file backup and versioning
+- [ ] File templates for common survey documents
+- [ ] OCR text extraction from uploaded images/PDFs
+- [ ] Integration with email attachments (auto-save to OneDrive)
+- [ ] Mobile photo upload from field work
+- [ ] Collaborative editing for shared documents
 
 ### Gmail Integration Detailed Steps
 

@@ -856,6 +856,14 @@ app.patch('/api/settings/:key', async (req, res) => {
   }
 });
 
+// OneDrive API endpoints
+const OneDriveController = require('./controllers/onedriveController');
+const onedriveController = new OneDriveController();
+
+app.post('/api/onedrive/folder-url', async (req, res) => {
+  await onedriveController.getFolderUrl(req, res);
+});
+
 // TODO API endpoints
 app.get('/api/todos', async (req, res) => {
   try {

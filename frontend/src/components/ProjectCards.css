@@ -180,6 +180,14 @@
   opacity: 0.6;
 }
 
+.onedrive-button {
+  background-color: #0078d4;
+}
+
+.onedrive-button:hover:not(:disabled) {
+  background-color: #106ebe;
+}
+
 .btn-delete {
   background-color: #dc3545;
   color: white;
