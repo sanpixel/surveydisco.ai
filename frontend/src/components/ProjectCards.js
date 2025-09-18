@@ -209,6 +209,7 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
               {renderField(project, 'serviceType', project.serviceType, 'Service')}
               {renderField(project, 'costEstimate', project.costEstimate, 'Cost Est.')}
               {renderField(project, 'action', project.action, 'Action')}
+              {renderField(project, 'filename', project.filename, 'Filename')}
             </div>
 
             <div className="card-footer">

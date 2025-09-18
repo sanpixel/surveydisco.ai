@@ -562,7 +562,8 @@ app.get('/api/projects', async (req, res) => {
       travelTime: row.travel_time,
       travelDistance: row.travel_distance,
       tags: row.tags,
-      action: row.action
+      action: row.action,
+      filename: row.filename
     }));
     res.json(projects);
   } catch (error) {
@@ -626,7 +627,8 @@ app.post('/api/projects/parse', async (req, res) => {
       travelTime: result.rows[0].travel_time,
       travelDistance: result.rows[0].travel_distance,
       tags: result.rows[0].tags,
-      action: result.rows[0].action
+      action: result.rows[0].action,
+      filename: result.rows[0].filename
     };
     
     res.json(savedProject);
@@ -688,7 +690,8 @@ app.post('/api/projects/:id/refresh-travel', async (req, res) => {
         travelTime: updateResult.rows[0].travel_time,
         travelDistance: updateResult.rows[0].travel_distance,
         tags: updateResult.rows[0].tags,
-        action: updateResult.rows[0].action
+        action: updateResult.rows[0].action,
+        filename: updateResult.rows[0].filename
       };
       
       res.json(updatedProject);
@@ -739,6 +742,20 @@ app.patch('/api/projects/:id', async (req, res) => {
           dbUpdates[key] = value;
       }
     });
+
+    // If address is being updated, validate it and update geo_address
+    if (allowedUpdates.address) {
+      try {
+        const validatedAddress = await validateAddress(allowedUpdates.address);
+        if (validatedAddress) {
+          dbUpdates.geo_address = validatedAddress;
+          console.log('Updated geo address:', validatedAddress);
+        }
+      } catch (error) {
+        console.error('Address validation failed during update:', error);
+        // Continue with update even if validation fails
+      }
+    }
     
     if (Object.keys(dbUpdates).length === 0) {
       return res.status(400).json({ error: 'No valid fields to update' });
@@ -779,7 +796,8 @@ app.patch('/api/projects/:id', async (req, res) => {
       travelTime: result.rows[0].travel_time,
       travelDistance: result.rows[0].travel_distance,
       tags: result.rows[0].tags,
-      action: result.rows[0].action
+      action: result.rows[0].action,
+      filename: result.rows[0].filename
     };
     res.json(updatedProject);
   } catch (error) {
