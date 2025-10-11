@@ -8,7 +8,7 @@ class OneDriveController {
   async getFolderUrl(req, res) {
     try {
       const { jobNumber, clientName, geoAddress, projectId } = req.body;
-      
+
       if (!jobNumber && !clientName && !geoAddress && !projectId) {
         return res.status(400).json({ error: 'Project information required' });
       }
@@ -28,35 +28,35 @@ class OneDriveController {
         folderName = this.graphService.sanitizeFolderName(`Project-${projectId}`);
         console.log('Using project ID for folder name:', folderName);
       }
-      
+
       const folderPath = `_SurveyDisco/${folderName}`;
       console.log('Creating OneDrive folder at path:', folderPath);
-      
+
       // Create folder if it doesn't exist (never delete existing folders)
       await this.graphService.createFolder(folderPath);
-      
+
       // Get shareable URL
       const folderUrl = await this.graphService.getFolderWebUrl(folderPath);
       console.log('Generated OneDrive folder URL:', folderUrl);
-      
+
       res.json({ folderUrl });
     } catch (error) {
       console.error('OneDrive folder access error:', error);
-      
+
       if (error.message.includes('not initialized')) {
-        return res.status(500).json({ 
-          error: 'OneDrive service unavailable - missing credentials' 
+        return res.status(500).json({
+          error: 'OneDrive service unavailable - missing credentials'
         });
       }
-      
+
       if (error.message.includes('authentication') || error.message.includes('unauthorized')) {
-        return res.status(500).json({ 
-          error: 'OneDrive authentication failed - please try again later' 
+        return res.status(500).json({
+          error: 'OneDrive authentication failed - please try again later'
         });
       }
-      
-      res.status(500).json({ 
-        error: 'Failed to access OneDrive folder' 
+
+      res.status(500).json({
+        error: 'Failed to access OneDrive folder'
       });
     }
   }
