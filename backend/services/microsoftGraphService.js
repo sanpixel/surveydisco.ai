@@ -38,6 +38,13 @@ class MicrosoftGraphService {
             });
             
             const tokenData = await response.json();
+            console.log('OAuth response status:', response.status);
+            console.log('OAuth response data:', tokenData);
+            
+            if (!response.ok || !tokenData.access_token) {
+              throw new Error(`OAuth failed: ${tokenData.error_description || tokenData.error || 'Unknown error'}`);
+            }
+            
             done(null, tokenData.access_token);
           } catch (error) {
             done(error, null);
