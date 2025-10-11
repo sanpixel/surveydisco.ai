@@ -13,11 +13,11 @@ class OneDriveController {
         return res.status(400).json({ error: 'Project information required' });
       }
 
-      // Use geo address as primary folder name, fallback to job number + client name, then project ID
+      // Use job number first, then add address or client info
       let folderName;
-      if (geoAddress && geoAddress.trim()) {
-        folderName = this.graphService.sanitizeFolderName(geoAddress);
-        console.log('Using geo address for folder name:', folderName);
+      if (jobNumber && geoAddress && geoAddress.trim()) {
+        folderName = this.graphService.sanitizeFolderName(`${jobNumber} - ${geoAddress}`);
+        console.log('Using job number + geo address for folder name:', folderName);
       } else if (jobNumber && clientName) {
         folderName = this.graphService.sanitizeFolderName(`${jobNumber} - ${clientName}`);
         console.log('Using job number + client name for folder name:', folderName);
