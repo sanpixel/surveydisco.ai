@@ -1,66 +1,71 @@
 const { Client } = require('@microsoft/microsoft-graph-client');
-const { ClientCredentialProvider } = require('@azure/msal-node');
+const { ConfidentialClientApplication } = require('@azure/msal-node');
 
 class MicrosoftGraphService {
   constructor() {
     this.clientId = process.env.MICROSOFT_CLIENT_ID;
     this.clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
     this.tenantId = process.env.MICROSOFT_TENANT_ID;
+    this.redirectUri = process.env.CLOUD_RUN_URL ? `${process.env.CLOUD_RUN_URL}/api/onedrive/callback` : 'http://localhost:8080/api/onedrive/callback';
     
     if (!this.clientId || !this.clientSecret || !this.tenantId) {
       console.error('Microsoft Graph credentials missing from environment variables');
-      this.graphClient = null;
+      this.msalClient = null;
       return;
     }
 
     try {
-      const clientCredentialRequest = {
-        scopes: ['https://graph.microsoft.com/.default'],
-        clientId: this.clientId,
-        clientSecret: this.clientSecret,
-        authority: `https://login.microsoftonline.com/${this.tenantId}`
-      };
-
-      this.graphClient = Client.init({
-        authProvider: async (done) => {
-          try {
-            const response = await fetch(`https://login.microsoftonline.com/consumers/oauth2/v2.0/token`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded'
-              },
-              body: new URLSearchParams({
-                client_id: this.clientId,
-                client_secret: this.clientSecret,
-                scope: 'https://graph.microsoft.com/.default',
-                grant_type: 'client_credentials'
-              })
-            });
-            
-            const tokenData = await response.json();
-            console.log('OAuth response:', response.status, tokenData);
-            
-            if (response.ok && tokenData.access_token) {
-              done(null, tokenData.access_token);
-            } else {
-              console.error('OAuth failed:', tokenData.error_description || tokenData.error);
-              done(new Error(`Authentication failed: ${tokenData.error_description || tokenData.error || 'Unknown error'}`), null);
-            }
-          } catch (error) {
-            done(error, null);
-          }
+      this.msalClient = new ConfidentialClientApplication({
+        auth: {
+          clientId: this.clientId,
+          clientSecret: this.clientSecret,
+          authority: `https://login.microsoftonline.com/consumers`
         }
       });
     } catch (error) {
-      console.error('Failed to initialize Microsoft Graph client:', error);
-      this.graphClient = null;
+      console.error('Failed to initialize MSAL client:', error);
+      this.msalClient = null;
     }
   }
 
-  async createFolder(folderPath) {
-    if (!this.graphClient) {
-      throw new Error('Microsoft Graph client not initialized');
+  getAuthUrl() {
+    if (!this.msalClient) {
+      throw new Error('MSAL client not initialized');
     }
+
+    const authCodeUrlParameters = {
+      scopes: ['Files.ReadWrite', 'offline_access'],
+      redirectUri: this.redirectUri,
+    };
+
+    return this.msalClient.getAuthCodeUrl(authCodeUrlParameters);
+  }
+
+  async getTokenFromCode(code) {
+    if (!this.msalClient) {
+      throw new Error('MSAL client not initialized');
+    }
+
+    const tokenRequest = {
+      code: code,
+      scopes: ['Files.ReadWrite'],
+      redirectUri: this.redirectUri,
+    };
+
+    const response = await this.msalClient.acquireTokenByCode(tokenRequest);
+    return response.accessToken;
+  }
+
+  createGraphClient(accessToken) {
+    return Client.init({
+      authProvider: (done) => {
+        done(null, accessToken);
+      }
+    });
+  }
+
+  async createFolder(folderPath, accessToken) {
+    const graphClient = this.createGraphClient(accessToken);
 
     try {
       const pathParts = folderPath.split('/');
@@ -76,7 +81,7 @@ class MicrosoftGraphService {
         
         try {
           // Check if folder exists
-          const existingFolder = await this.graphClient.api(`/drives/me/root:/${currentPath}`).get();
+          const existingFolder = await graphClient.api(`/me/drive/root:/${currentPath}`).get();
           console.log(`Folder already exists: ${currentPath}`);
         } catch (error) {
           if (error.code === 'itemNotFound') {
@@ -88,8 +93,8 @@ class MicrosoftGraphService {
               '@microsoft.graph.conflictBehavior': 'rename'  // Rename if conflict, never overwrite
             };
             
-            const newFolder = await this.graphClient
-              .api(`/drives/me/root:/${parentPath}:/children`)
+            const newFolder = await graphClient
+              .api(`/me/drive/root:/${parentPath}:/children`)
               .post(folderData);
               
             console.log(`Successfully created folder: ${newFolder.name}`);
@@ -117,15 +122,13 @@ class MicrosoftGraphService {
     }
   }
 
-  async getFolderWebUrl(folderPath) {
-    if (!this.graphClient) {
-      throw new Error('Microsoft Graph client not initialized');
-    }
+  async getFolderWebUrl(folderPath, accessToken) {
+    const graphClient = this.createGraphClient(accessToken);
 
     try {
       console.log('Getting web URL for folder:', folderPath);
-      const response = await this.graphClient
-        .api(`/drives/me/root:/${folderPath}`)
+      const response = await graphClient
+        .api(`/me/drive/root:/${folderPath}`)
         .get();
       
       console.log('Successfully retrieved folder web URL');

@@ -18,10 +18,19 @@ export const openOneDriveFolder = async (project) => {
     });
     
     if (response.ok) {
-      const { folderUrl } = await response.json();
-      console.log('Successfully got OneDrive folder URL, opening in new tab');
-      window.open(folderUrl, '_blank');
-      return { success: true, folderUrl };
+      const data = await response.json();
+      
+      if (data.requiresAuth) {
+        // User needs to authenticate - redirect to OAuth
+        console.log('OneDrive authentication required, redirecting to OAuth');
+        window.open(data.authUrl, '_blank');
+        return { success: true, requiresAuth: true };
+      } else {
+        // Got folder URL directly
+        console.log('Successfully got OneDrive folder URL, opening in new tab');
+        window.open(data.folderUrl, '_blank');
+        return { success: true, folderUrl: data.folderUrl };
+      }
     } else {
       const error = await response.json();
       throw new Error(error.error || 'Failed to get folder URL');

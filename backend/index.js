@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const { createClient } = require('@supabase/supabase-js');
 const { Pool } = require('pg');
@@ -130,6 +132,13 @@ initDatabase();
 
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'surveydisco-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
 
 // Address validation using Google Maps Geocoding API
 async function validateAddress(address) {
@@ -880,6 +889,10 @@ const onedriveController = new OneDriveController();
 
 app.post('/api/onedrive/folder-url', async (req, res) => {
   await onedriveController.getFolderUrl(req, res);
+});
+
+app.get('/api/onedrive/callback', async (req, res) => {
+  await onedriveController.handleCallback(req, res);
 });
 
 // TODO API endpoints
