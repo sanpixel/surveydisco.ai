@@ -24,7 +24,7 @@ class MicrosoftGraphService {
       this.graphClient = Client.init({
         authProvider: async (done) => {
           try {
-            const response = await fetch(`https://login.microsoftonline.com/${this.tenantId}/oauth2/v2.0/token`, {
+            const response = await fetch(`https://login.microsoftonline.com/consumers/oauth2/v2.0/token`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/x-www-form-urlencoded'
