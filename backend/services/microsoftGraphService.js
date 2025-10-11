@@ -76,7 +76,7 @@ class MicrosoftGraphService {
         
         try {
           // Check if folder exists
-          const existingFolder = await this.graphClient.api(`/me/drive/root:/${currentPath}`).get();
+          const existingFolder = await this.graphClient.api(`/drives/me/root:/${currentPath}`).get();
           console.log(`Folder already exists: ${currentPath}`);
         } catch (error) {
           if (error.code === 'itemNotFound') {
@@ -89,7 +89,7 @@ class MicrosoftGraphService {
             };
             
             const newFolder = await this.graphClient
-              .api(`/me/drive/root:/${parentPath}:/children`)
+              .api(`/drives/me/root:/${parentPath}:/children`)
               .post(folderData);
               
             console.log(`Successfully created folder: ${newFolder.name}`);
@@ -125,7 +125,7 @@ class MicrosoftGraphService {
     try {
       console.log('Getting web URL for folder:', folderPath);
       const response = await this.graphClient
-        .api(`/me/drive/root:/${folderPath}`)
+        .api(`/drives/me/root:/${folderPath}`)
         .get();
       
       console.log('Successfully retrieved folder web URL');
