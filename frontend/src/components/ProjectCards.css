@@ -204,6 +204,30 @@
   background-color: #218838;
 }
 
+.expand-button {
+  background-color: #6f42c1;
+}
+
+.expand-button:hover:not(:disabled) {
+  background-color: #5a32a3;
+}
+
+.card-additional {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.additional-header {
+  font-weight: bold;
+  color: #495057;
+  margin-bottom: 8px;
+  font-size: 14px;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 4px;
+}
+
 .btn-delete {
   background-color: #dc3545;
   color: white;

@@ -7,6 +7,7 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
   const [editValue, setEditValue] = useState('');
   const [showDeletePrompt, setShowDeletePrompt] = useState(null);
   const [password, setPassword] = useState('');
+  const [expandedCards, setExpandedCards] = useState(new Set());
 
   const startEdit = (projectId, field, currentValue) => {
     console.log('startEdit called:', { projectId, field, currentValue });
@@ -75,6 +76,16 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
     } else {
       alert('OneDrive folder not initialized. Please click "Init" first.');
     }
+  };
+
+  const toggleCardExpansion = (projectId) => {
+    const newExpanded = new Set(expandedCards);
+    if (newExpanded.has(projectId)) {
+      newExpanded.delete(projectId);
+    } else {
+      newExpanded.add(projectId);
+    }
+    setExpandedCards(newExpanded);
   };
 
   const handleInitOneDrive = async (project) => {
@@ -256,6 +267,18 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
               {renderField(project, 'filename', project.filename, 'Filename')}
             </div>
 
+            {/* Additional surveying fields - expandable section */}
+            {expandedCards.has(project.id) && (
+              <div className="card-additional">
+                <div className="additional-header">Surveying Details</div>
+                {renderField(project, 'landLot', project.landLot, 'Land Lot')}
+                {renderField(project, 'district', project.district, 'District')}
+                {renderField(project, 'county', project.county, 'County')}
+                {renderField(project, 'deedBook', project.deedBook, 'Deed Book')}
+                {renderField(project, 'deedPage', project.deedPage, 'Deed Page')}
+              </div>
+            )}
+
             <div className="card-footer">
               {renderField(project, 'created', project.created, 'Created', true)}
               {renderField(project, 'modified', project.modified, 'Modified', true)}
@@ -297,6 +320,13 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                     title="Copy address and open Regrid"
                   >
                     🗺️ Regrid
+                  </button>
+                  <button 
+                    onClick={() => toggleCardExpansion(project.id)}
+                    className="btn-action expand-button"
+                    title={expandedCards.has(project.id) ? "Hide surveying details" : "Show surveying details"}
+                  >
+                    {expandedCards.has(project.id) ? '📋 Less' : '📋 More'}
                   </button>
                   <button 
                     onClick={() => handleInitOneDrive(project)}
