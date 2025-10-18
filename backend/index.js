@@ -52,7 +52,8 @@ async function initDatabase() {
         status VARCHAR(50) DEFAULT 'New',
         created TIMESTAMP DEFAULT NOW(),
         modified TIMESTAMP DEFAULT NOW(),
-        notes TEXT
+        notes TEXT,
+        onedrive_folder_url TEXT
       )
     `);
     
@@ -572,7 +573,8 @@ app.get('/api/projects', async (req, res) => {
       travelDistance: row.travel_distance,
       tags: row.tags,
       action: row.action,
-      filename: row.filename
+      filename: row.filename,
+      onedrivefolderurl: row.onedrive_folder_url
     }));
     res.json(projects);
   } catch (error) {
@@ -889,6 +891,10 @@ const onedriveController = new OneDriveController();
 
 app.post('/api/onedrive/folder-url', async (req, res) => {
   await onedriveController.getFolderUrl(req, res);
+});
+
+app.post('/api/onedrive/init-folder', async (req, res) => {
+  await onedriveController.initFolder(req, res);
 });
 
 app.get('/api/onedrive/callback', async (req, res) => {

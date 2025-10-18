@@ -69,7 +69,51 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
   };
 
   const handleOneDriveClick = async (project) => {
-    await openOneDriveFolder(project);
+    if (project.onedrivefolderurl) {
+      // Direct link to shared folder
+      window.open(project.onedrivefolderurl, '_blank');
+    } else {
+      alert('OneDrive folder not initialized. Please click "Init" first.');
+    }
+  };
+
+  const handleInitOneDrive = async (project) => {
+    try {
+      console.log('Initializing OneDrive folder for project:', project.jobNumber);
+      
+      const response = await fetch('/api/onedrive/init-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobNumber: project.jobNumber,
+          clientName: project.client,
+          geoAddress: project.geoAddress,
+          projectId: project.id
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.requiresAuth) {
+        // User needs to authenticate - redirect to OAuth
+        console.log('OneDrive authentication required, redirecting to OAuth');
+        window.open(data.authUrl, '_blank');
+        return;
+      }
+
+      if (data.success) {
+        console.log('Successfully initialized OneDrive folder');
+        // Update the project in state with the new folder URL
+        const updatedProject = { ...project, onedrivefolderurl: data.folderUrl };
+        onUpdate(updatedProject);
+        alert('OneDrive folder initialized successfully!');
+      } else {
+        throw new Error(data.error || 'Failed to initialize folder');
+      }
+    } catch (error) {
+      console.error('Failed to initialize OneDrive folder:', error);
+      alert('Failed to initialize OneDrive folder. Please try again.');
+    }
   };
 
   const refreshTravelInfo = async (project) => {
@@ -255,9 +299,17 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                     🗺️ Regrid
                   </button>
                   <button 
+                    onClick={() => handleInitOneDrive(project)}
+                    className="btn-action init-button"
+                    title="Initialize OneDrive folder"
+                  >
+                    🔧 Init
+                  </button>
+                  <button 
                     onClick={() => handleOneDriveClick(project)}
-                    className="btn-action onedrive-button"
-                    title="Open OneDrive folder"
+                    className={`btn-action onedrive-button ${!project.onedrivefolderurl ? 'disabled' : ''}`}
+                    disabled={!project.onedrivefolderurl}
+                    title={project.onedrivefolderurl ? "Open OneDrive folder" : "Folder not initialized"}
                   >
                     📁 OneDrive
                   </button>
