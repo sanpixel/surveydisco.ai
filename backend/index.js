@@ -966,6 +966,10 @@ app.patch('/api/settings/:key', async (req, res) => {
 const OneDriveController = require('./controllers/onedriveController');
 const onedriveController = new OneDriveController();
 
+// Email monitoring service
+const EmailMonitorService = require('./services/emailMonitorService');
+const emailMonitor = new EmailMonitorService();
+
 app.post('/api/onedrive/folder-url', async (req, res) => {
   await onedriveController.getFolderUrl(req, res);
 });
@@ -976,6 +980,54 @@ app.post('/api/onedrive/init-folder', async (req, res) => {
 
 app.get('/api/onedrive/callback', async (req, res) => {
   await onedriveController.handleCallback(req, res);
+});
+
+// Gmail authentication endpoints
+app.get('/api/gmail/auth', async (req, res) => {
+  try {
+    const authUrl = await emailMonitor.getAuthUrl();
+    res.json({ authUrl });
+  } catch (error) {
+    console.error('Gmail auth error:', error);
+    res.status(500).json({ error: 'Failed to get Gmail auth URL' });
+  }
+});
+
+app.get('/api/gmail/callback', async (req, res) => {
+  try {
+    const { code } = req.query;
+    const tokens = await emailMonitor.handleAuthCallback(code);
+    
+    // In production, you'd save the refresh token securely
+    console.log('Save this refresh token to environment variables:');
+    console.log('GMAIL_REFRESH_TOKEN=' + tokens.refresh_token);
+    
+    res.redirect(`${process.env.CLOUD_RUN_URL || 'http://localhost:3000'}?gmail_auth=success`);
+  } catch (error) {
+    console.error('Gmail callback error:', error);
+    res.redirect(`${process.env.CLOUD_RUN_URL || 'http://localhost:3000'}?gmail_auth=error`);
+  }
+});
+
+// Email monitoring control endpoints
+app.post('/api/gmail/start-monitoring', async (req, res) => {
+  try {
+    await emailMonitor.startMonitoring();
+    res.json({ message: 'Email monitoring started' });
+  } catch (error) {
+    console.error('Error starting email monitoring:', error);
+    res.status(500).json({ error: 'Failed to start email monitoring' });
+  }
+});
+
+app.post('/api/gmail/stop-monitoring', async (req, res) => {
+  try {
+    emailMonitor.stopMonitoring();
+    res.json({ message: 'Email monitoring stopped' });
+  } catch (error) {
+    console.error('Error stopping email monitoring:', error);
+    res.status(500).json({ error: 'Failed to stop email monitoring' });
+  }
 });
 
 // TODO API endpoints
