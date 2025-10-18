@@ -777,6 +777,21 @@ app.patch('/api/projects/:id', async (req, res) => {
         case 'travelDistance':
           dbUpdates.travel_distance = value;
           break;
+        case 'landLot':
+          dbUpdates.land_lot = value;
+          break;
+        case 'district':
+          dbUpdates.district = value;
+          break;
+        case 'county':
+          dbUpdates.county = value;
+          break;
+        case 'deedBook':
+          dbUpdates.deed_book = value;
+          break;
+        case 'deedPage':
+          dbUpdates.deed_page = value;
+          break;
         default:
           dbUpdates[key] = value;
       }
@@ -836,7 +851,13 @@ app.patch('/api/projects/:id', async (req, res) => {
       travelDistance: result.rows[0].travel_distance,
       tags: result.rows[0].tags,
       action: result.rows[0].action,
-      filename: result.rows[0].filename
+      filename: result.rows[0].filename,
+      onedrivefolderurl: result.rows[0].onedrive_folder_url,
+      landLot: result.rows[0].land_lot,
+      district: result.rows[0].district,
+      county: result.rows[0].county,
+      deedBook: result.rows[0].deed_book,
+      deedPage: result.rows[0].deed_page
     };
     res.json(updatedProject);
   } catch (error) {
