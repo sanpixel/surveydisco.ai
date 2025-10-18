@@ -583,6 +583,29 @@ app.get('/api/projects', async (req, res) => {
   }
 });
 
+// Simple endpoint for AutoCAD LISP - returns pipe-delimited data
+app.get('/api/projects/autocad/:jobNumber', async (req, res) => {
+  try {
+    const { jobNumber } = req.params;
+    const result = await pool.query('SELECT * FROM surveydisco_projects WHERE job_number = $1', [jobNumber]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).send('JOB_NOT_FOUND');
+    }
+    
+    const project = result.rows[0];
+    
+    // Return simple pipe-delimited format: jobNumber|geoAddress|preparedFor|serviceType
+    const response = `${project.job_number}|${project.geo_address || project.address || ''}|${project.prepared_for || ''}|${project.service_type || ''}`;
+    
+    res.set('Content-Type', 'text/plain');
+    res.send(response);
+  } catch (error) {
+    console.error('Error fetching project for AutoCAD:', error);
+    res.status(500).send('ERROR');
+  }
+});
+
 // Parse text and create new project
 app.post('/api/projects/parse', async (req, res) => {
   const { text } = req.body;
