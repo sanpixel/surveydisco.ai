@@ -611,6 +611,34 @@ app.get('/api/projects/autocad/:jobNumber', async (req, res) => {
   }
 });
 
+// Vicinity map endpoint for AutoCAD MAPMAP integration
+app.get('/api/projects/map/:jobNumber', async (req, res) => {
+  try {
+    const { jobNumber } = req.params;
+    const result = await pool.query('SELECT geo_address, address FROM surveydisco_projects WHERE job_number = $1', [jobNumber]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).send('JOB_NOT_FOUND');
+    }
+    
+    const project = result.rows[0];
+    const address = project.geo_address || project.address;
+    
+    if (!address) {
+      return res.status(404).send('NO_ADDRESS');
+    }
+    
+    // Generate Google Maps Static API URL for vicinity map
+    const mapUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(address)}&zoom=16&size=400x300&markers=color:red%7Clabel:SITE%7C${encodeURIComponent(address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+    
+    res.set('Content-Type', 'text/plain');
+    res.send(mapUrl);
+  } catch (error) {
+    console.error('Error generating map for AutoCAD:', error);
+    res.status(500).send('ERROR');
+  }
+});
+
 // Parse text and create new project
 app.post('/api/projects/parse', async (req, res) => {
   const { text } = req.body;

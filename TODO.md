@@ -215,6 +215,20 @@
   - [ ] Create confirmation email responses to clients
   - [ ] Add admin interface for managing email processing rules
 
+- [ ] AutoCAD Integration Phase 2
+  - [ ] Create MAPMAP LISP command that downloads vicinity maps
+  - [ ] Add image processing to overlay "SITE" arrow on maps
+  - [ ] Integrate map insertion into AutoCAD blocks
+  - [ ] Add DATE field auto-population to FILLPROJ
+  - [ ] Create SUBDIVISION_NAME_LOT field extraction logic
+
+- [ ] Project Data Enhancement
+  - [ ] Add quick-edit interface for surveying fields in expanded section
+  - [ ] Implement address autocomplete for better data entry
+  - [ ] Add field validation for surveying data (deed book format, etc.)
+  - [ ] Create data import/export functionality for bulk updates
+  - [ ] Add project templates with pre-filled surveying data
+
 - [ ] Advanced Project Management Features
   - [ ] Add project status workflow (New → In Progress → Complete → Billed)
   - [ ] Implement due date tracking with notifications
@@ -273,6 +287,15 @@
   - Weather integration for field work planning
   - Equipment tracking and maintenance
   - Staff assignment and workload management
+
+## Completed ✅
+- [x] AutoCAD Integration Phase 1
+  - [x] Added landLot, district, county, deedBook, deedPage fields to database
+  - [x] Updated backend API to include new surveying fields
+  - [x] Expanded AutoCAD endpoint to return 9 pipe-delimited fields
+  - [x] Updated FILLPROJ LISP to handle new fields and fill block attributes
+  - [x] Added expandable "More" section to project cards for surveying details
+  - [x] Created vicinity map endpoint for MAPMAP integration
 
 ## Completed ✅
 - [x] Google Routes API integration for travel time calculations
