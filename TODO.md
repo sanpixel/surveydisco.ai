@@ -237,6 +237,30 @@
   - [ ] Implement project search and filtering
   - [ ] Add project timeline/history tracking
 
+- [ ] Mobile & Field Work Features
+  - [ ] Create mobile-responsive interface for field updates
+  - [ ] Add GPS location capture for site visits
+  - [ ] Implement photo upload from mobile devices
+  - [ ] Create offline mode for field work without internet
+  - [ ] Add voice notes recording and transcription
+  - [ ] Build field checklist and progress tracking
+
+- [ ] Advanced Analytics & Reporting
+  - [ ] Create project timeline visualization
+  - [ ] Add revenue tracking and forecasting
+  - [ ] Implement client frequency and value analysis
+  - [ ] Build custom report generator
+  - [ ] Add project profitability analysis
+  - [ ] Create performance metrics dashboard
+
+- [ ] Integration & Automation
+  - [ ] QuickBooks integration for invoicing
+  - [ ] Calendar integration for scheduling
+  - [ ] Weather API for field work planning
+  - [ ] Equipment tracking and maintenance logs
+  - [ ] Staff assignment and workload management
+  - [ ] Automated backup and data sync
+
 - [ ] Client Communication Enhancements
   - [ ] Create email templates for different project phases
   - [ ] Implement automated status update emails to clients
@@ -296,6 +320,14 @@
   - [x] Updated FILLPROJ LISP to handle new fields and fill block attributes
   - [x] Added expandable "More" section to project cards for surveying details
   - [x] Created vicinity map endpoint for MAPMAP integration
+  - [x] Updated project PATCH endpoint to handle new surveying fields
+
+- [x] Email Monitoring Foundation
+  - [x] Created EmailMonitorService class with Gmail API integration
+  - [x] Added Gmail authentication endpoints
+  - [x] Implemented basic email checking and processing pipeline
+  - [x] Added googleapis package dependency
+  - [x] Created monitoring start/stop control endpoints
 
 ## Completed ✅
 - [x] Google Routes API integration for travel time calculations
