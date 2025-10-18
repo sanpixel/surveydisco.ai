@@ -574,7 +574,12 @@ app.get('/api/projects', async (req, res) => {
       tags: row.tags,
       action: row.action,
       filename: row.filename,
-      onedrivefolderurl: row.onedrive_folder_url
+      onedrivefolderurl: row.onedrive_folder_url,
+      landLot: row.land_lot,
+      district: row.district,
+      county: row.county,
+      deedBook: row.deed_book,
+      deedPage: row.deed_page
     }));
     res.json(projects);
   } catch (error) {
@@ -595,8 +600,8 @@ app.get('/api/projects/autocad/:jobNumber', async (req, res) => {
     
     const project = result.rows[0];
     
-    // Return simple pipe-delimited format: jobNumber|geoAddress|preparedFor|serviceType
-    const response = `${project.job_number}|${project.geo_address || project.address || ''}|${project.prepared_for || ''}|${project.service_type || ''}`;
+    // Return expanded pipe-delimited format: jobNumber|geoAddress|preparedFor|serviceType|landLot|district|county|deedBook|deedPage
+    const response = `${project.job_number}|${project.geo_address || project.address || ''}|${project.prepared_for || ''}|${project.service_type || ''}|${project.land_lot || ''}|${project.district || ''}|${project.county || ''}|${project.deed_book || ''}|${project.deed_page || ''}`;
     
     res.set('Content-Type', 'text/plain');
     res.send(response);

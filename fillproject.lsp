@@ -82,6 +82,18 @@
                             
                             ((= att-tag "SURVEY_TYPE")
                              (vlax-put att 'TextString (cdr (assoc "serviceType" project-data))))
+                            
+                            ((= att-tag "LAND_LOT")
+                             (vlax-put att 'TextString (strcat "LAND LOT: " (cdr (assoc "landLot" project-data)))))
+                            
+                            ((= att-tag "DISTRICT")
+                             (vlax-put att 'TextString (strcat "DISTRICT: " (cdr (assoc "district" project-data)))))
+                            
+                            ((= att-tag "COUNTY")
+                             (vlax-put att 'TextString (strcat "COUNTY: " (cdr (assoc "county" project-data)))))
+                            
+                            ((= att-tag "REF_DB_PG")
+                             (vlax-put att 'TextString (strcat "REF DB " (cdr (assoc "deedBook" project-data)) " Page " (cdr (assoc "deedPage" project-data)))))
                           )
                         )
                         (princ (strcat "\nUpdated block instance " (rtos (+ i 1) 2 0)))
@@ -110,15 +122,20 @@
 ;; Helper function to parse pipe-delimited response
 (defun parse-pipe-data (response-text / parts job-num address prep-for service-type)
   
-  ;; Split by pipe character: jobNumber|geoAddress|preparedFor|serviceType
+  ;; Split by pipe character: jobNumber|geoAddress|preparedFor|serviceType|landLot|district|county|deedBook|deedPage
   (setq parts (split-string response-text "|"))
   
-  (if (>= (length parts) 4)
+  (if (>= (length parts) 9)
     (progn
       (setq job-num (nth 0 parts))
       (setq address (nth 1 parts))
       (setq prep-for (nth 2 parts))
       (setq service-type (nth 3 parts))
+      (setq land-lot (nth 4 parts))
+      (setq district (nth 5 parts))
+      (setq county (nth 6 parts))
+      (setq deed-book (nth 7 parts))
+      (setq deed-page (nth 8 parts))
       
       ;; Return association list
       (list
@@ -126,6 +143,11 @@
         (cons "address" address)
         (cons "preparedFor" prep-for)
         (cons "serviceType" service-type)
+        (cons "landLot" land-lot)
+        (cons "district" district)
+        (cons "county" county)
+        (cons "deedBook" deed-book)
+        (cons "deedPage" deed-page)
       )
     )
     nil

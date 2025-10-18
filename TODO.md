@@ -1,6 +1,26 @@
 # SurveyDisco.ai TODO
 
 ## High Priority
+
+- [ ] AutoCAD Integration Enhancements
+  - Add additional fields to project cards for surveying data:
+    - [ ] `land_lot` - Land lot number
+    - [ ] `district` - District information  
+    - [ ] `county` - County name
+    - [ ] `deed_book` - Reference deed book number
+    - [ ] `deed_page` - Reference deed page number
+  - [ ] Implement card flip/toggle functionality to show additional fields without cluttering main view
+  - [ ] Update AutoCAD LISP endpoint to include new fields in pipe-delimited response
+  - [ ] Update database schema to store new surveying fields
+  - [ ] Design compact UI for additional fields (flip card, expandable section, or modal)
+  - [ ] Integrate MAPMAP LISP functionality:
+    - [ ] Add vicinity map block attribute to SS_BLOCK_11X17
+    - [ ] Create endpoint to generate Google Maps vicinity map from geoAddress
+    - [ ] Add "SITE" arrow/marker overlay to map image before placing in drawing
+    - [ ] Update FILLPROJ LISP to pull map data and insert into block
+    - [ ] Handle map image embedding or reference in AutoCAD drawing
+
+## High Priority
 - [ ] OneDrive integration for file storage and management
   - Set up Microsoft Graph API access for OneDrive
   - Create project folders automatically in OneDrive
