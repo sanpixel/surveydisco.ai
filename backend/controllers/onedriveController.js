@@ -118,17 +118,8 @@ class OneDriveController {
         return res.status(400).json({ error: 'Project ID required' });
       }
 
-      // Use the existing getFolderUrl logic to create folder and get URL
-      const mockRes = {
-        status: (code) => ({ json: (data) => ({ statusCode: code, data }) }),
-        json: (data) => ({ statusCode: 200, data })
-      };
+      console.log('Initializing OneDrive folder for project:', projectId, 'Job:', jobNumber);
 
-      // Call the existing folder creation logic
-      await this.getFolderUrl({ body: { jobNumber, clientName, geoAddress, projectId } }, mockRes);
-
-      // If we got here without throwing, the folder was created successfully
-      // Now we need to get the folder URL and store it in the database
       const accessToken = req.session?.accessToken || req.cookies?.onedrive_token;
       
       if (!accessToken) {
@@ -153,11 +144,35 @@ class OneDriveController {
 
       const folderPath = `_SurveyDisco/${folderName}`;
 
-      // Create folder if it doesn't exist
-      await this.graphService.createFolder(folderPath, accessToken);
+      // Check if folder already exists
+      const folderExists = await this.graphService.checkFolderExists(folderPath, accessToken);
+      
+      let templateCopied = false;
+      let folderUrl;
 
-      // Get shareable URL
-      const folderUrl = await this.graphService.getFolderWebUrl(folderPath, accessToken);
+      if (folderExists) {
+        console.log('OneDrive folder already exists, skipping template creation:', folderPath);
+        // Get existing folder URL
+        folderUrl = await this.graphService.getFolderWebUrl(folderPath, accessToken);
+      } else {
+        console.log('Creating new OneDrive folder:', folderPath);
+        // Create folder
+        await this.graphService.createFolder(folderPath, accessToken);
+        
+        // Get folder URL
+        folderUrl = await this.graphService.getFolderWebUrl(folderPath, accessToken);
+        
+        // Copy template file to new folder
+        try {
+          const templateFileName = this.generateTemplateFileName(jobNumber, geoAddress);
+          await this.copyTemplateFile(folderPath, templateFileName, accessToken);
+          templateCopied = true;
+          console.log('Template file copied successfully:', templateFileName);
+        } catch (templateError) {
+          console.error('Failed to copy template file (continuing anyway):', templateError);
+          // Don't fail the whole operation if template copy fails
+        }
+      }
 
       // Store the URL in the database
       await this.pool.query(
@@ -165,9 +180,14 @@ class OneDriveController {
         [folderUrl, projectId]
       );
 
-      console.log('Successfully initialized OneDrive folder and stored URL for project:', projectId);
+      console.log('Successfully initialized OneDrive folder for project:', projectId);
 
-      res.json({ success: true, folderUrl });
+      res.json({ 
+        success: true, 
+        folderUrl,
+        folderExists: folderExists,
+        templateCopied: templateCopied
+      });
     } catch (error) {
       console.error('OneDrive folder initialization error:', error);
 
@@ -187,6 +207,33 @@ class OneDriveController {
         error: 'Failed to initialize OneDrive folder'
       });
     }
+  }
+
+  generateTemplateFileName(jobNumber, geoAddress) {
+    // Extract street address (remove city, state, country)
+    let streetAddress = '';
+    if (geoAddress) {
+      // Split by comma and take first part (street address)
+      streetAddress = geoAddress.split(',')[0].trim();
+    }
+    
+    // Generate filename: "250905 - 295 Creekview Trl.dwg"
+    const fileName = streetAddress 
+      ? `${jobNumber} - ${streetAddress}.dwg`
+      : `${jobNumber} - Project.dwg`;
+      
+    // Sanitize filename
+    return this.graphService.sanitizeFolderName(fileName);
+  }
+
+  async copyTemplateFile(folderPath, fileName, accessToken) {
+    const templateUrl = 'https://1drv.ms/u/c/1f7f5c37636a6ca0/EVkDfwsTaZ5PmeFDSgPKYY8B3F1fbudTsLLHiSbINyG8Dg?e=Yqg5Kh';
+    
+    // Download template file from OneDrive
+    const templateContent = await this.graphService.downloadFileFromUrl(templateUrl, accessToken);
+    
+    // Upload to project folder with new name
+    await this.graphService.uploadFile(folderPath, fileName, templateContent, accessToken);
   }
 }
 

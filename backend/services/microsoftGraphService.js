@@ -149,6 +149,72 @@ class MicrosoftGraphService {
     }
   }
 
+  async checkFolderExists(folderPath, accessToken) {
+    const graphClient = this.createGraphClient(accessToken);
+
+    try {
+      await graphClient.api(`/me/drive/root:/${folderPath}`).get();
+      return true; // Folder exists
+    } catch (error) {
+      if (error.code === 'itemNotFound') {
+        return false; // Folder doesn't exist
+      }
+      throw error; // Other error
+    }
+  }
+
+  async downloadFileFromUrl(shareUrl, accessToken) {
+    // For now, we'll need to implement this differently since the share URL
+    // requires special handling. Let's use a direct file ID approach instead.
+    const graphClient = this.createGraphClient(accessToken);
+    
+    try {
+      // The template file should be in the root _SurveyDisco folder
+      const templatePath = '_SurveyDisco/SS_BLOCK_11X17.dwg';
+      
+      const response = await graphClient
+        .api(`/me/drive/root:/${templatePath}:/content`)
+        .get();
+        
+      return response;
+    } catch (error) {
+      console.error('Error downloading template file:', error);
+      throw new Error('Template file not found in OneDrive');
+    }
+  }
+
+  async uploadFile(folderPath, fileName, fileContent, accessToken) {
+    const graphClient = this.createGraphClient(accessToken);
+
+    try {
+      const filePath = `${folderPath}/${fileName}`;
+      
+      // Check if file already exists (safety check)
+      try {
+        await graphClient.api(`/me/drive/root:/${filePath}`).get();
+        console.log('File already exists, skipping upload:', fileName);
+        return; // File exists, don't overwrite
+      } catch (error) {
+        if (error.code !== 'itemNotFound') {
+          throw error;
+        }
+        // File doesn't exist, proceed with upload
+      }
+
+      console.log('Uploading file to OneDrive:', filePath);
+      
+      const response = await graphClient
+        .api(`/me/drive/root:/${filePath}:/content`)
+        .put(fileContent);
+        
+      console.log('File uploaded successfully:', fileName);
+      return response;
+    } catch (error) {
+      console.error('Error uploading file to OneDrive:', error);
+      throw error;
+    }
+  }
+
   sanitizeFolderName(name) {
     if (!name) return 'Untitled';
     

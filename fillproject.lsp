@@ -103,6 +103,18 @@
                   )
                   (princ "\nProject data filled successfully!")
                   (command "REGEN")
+                  
+                  ;; Ask if user wants to insert vicinity map
+                  (if (/= (getstring "\nInsert vicinity map? (Y/N) <Y>: ") "N")
+                    (progn
+                      (princ "\nTo insert vicinity map:")
+                      (princ (strcat "\n1. Load MAPMAP_wsrun_v1.lsp if not already loaded"))
+                      (princ (strcat "\n2. Run MAPMAP command"))
+                      (princ (strcat "\n3. Enter job number: " job-num))
+                      (princ "\nOr run MAPMAP now manually...")
+                    )
+                    (princ "\nSkipping map insertion.")
+                  )
                 )
                 (princ "\nNo blocks found in drawing.")
               )
@@ -168,6 +180,7 @@
   (setq result (append result (list (substr str start))))
   result
 )
+
 ;; H
 elper function to read file contents
 (defun read-file-contents (filename / file-handle content line)
