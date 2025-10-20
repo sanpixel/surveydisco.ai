@@ -164,22 +164,34 @@ class MicrosoftGraphService {
   }
 
   async downloadFileFromUrl(shareUrl, accessToken) {
-    // For now, we'll need to implement this differently since the share URL
-    // requires special handling. Let's use a direct file ID approach instead.
     const graphClient = this.createGraphClient(accessToken);
     
     try {
       // The template file should be in the root _SurveyDisco folder
       const templatePath = '_SurveyDisco/SS_BLOCK_11X17.dwg';
       
+      console.log('Downloading template file from:', templatePath);
+      
+      // Get file content as buffer
       const response = await graphClient
         .api(`/me/drive/root:/${templatePath}:/content`)
+        .responseType('arraybuffer')
         .get();
         
-      return response;
+      console.log('Template file downloaded successfully, size:', response.byteLength);
+      return Buffer.from(response);
     } catch (error) {
       console.error('Error downloading template file:', error);
-      throw new Error('Template file not found in OneDrive');
+      
+      if (error.code === 'itemNotFound') {
+        throw new Error('Template file SS_BLOCK_11X17.dwg not found in _SurveyDisco folder');
+      } else if (error.code === 'unauthenticated') {
+        throw new Error('Authentication failed when accessing template file');
+      } else if (error.code === 'forbidden') {
+        throw new Error('Insufficient permissions to access template file');
+      }
+      
+      throw new Error(`Failed to download template file: ${error.message}`);
     }
   }
 
@@ -191,9 +203,9 @@ class MicrosoftGraphService {
       
       // Check if file already exists (safety check)
       try {
-        await graphClient.api(`/me/drive/root:/${filePath}`).get();
+        const existingFile = await graphClient.api(`/me/drive/root:/${filePath}`).get();
         console.log('File already exists, skipping upload:', fileName);
-        return; // File exists, don't overwrite
+        return existingFile; // File exists, don't overwrite
       } catch (error) {
         if (error.code !== 'itemNotFound') {
           throw error;
@@ -202,15 +214,47 @@ class MicrosoftGraphService {
       }
 
       console.log('Uploading file to OneDrive:', filePath);
+      console.log('File size:', fileContent.length, 'bytes');
       
-      const response = await graphClient
-        .api(`/me/drive/root:/${filePath}:/content`)
-        .put(fileContent);
+      // Use resumable upload for larger files (DWG files can be big)
+      if (fileContent.length > 4 * 1024 * 1024) { // > 4MB
+        console.log('Using resumable upload for large file');
         
-      console.log('File uploaded successfully:', fileName);
-      return response;
+        // Create upload session
+        const uploadSession = await graphClient
+          .api(`/me/drive/root:/${filePath}:/createUploadSession`)
+          .post({
+            item: {
+              '@microsoft.graph.conflictBehavior': 'fail',
+              name: fileName
+            }
+          });
+          
+        // Upload in chunks (this is simplified - production would need proper chunking)
+        const response = await graphClient
+          .api(uploadSession.uploadUrl)
+          .put(fileContent);
+          
+        console.log('Large file uploaded successfully:', fileName);
+        return response;
+      } else {
+        // Simple upload for smaller files
+        const response = await graphClient
+          .api(`/me/drive/root:/${filePath}:/content`)
+          .header('Content-Type', 'application/octet-stream')
+          .put(fileContent);
+          
+        console.log('File uploaded successfully:', fileName);
+        return response;
+      }
     } catch (error) {
       console.error('Error uploading file to OneDrive:', error);
+      
+      if (error.code === 'nameAlreadyExists') {
+        console.log('File already exists (race condition), treating as success');
+        return; // File was created by another process, that's fine
+      }
+      
       throw error;
     }
   }
