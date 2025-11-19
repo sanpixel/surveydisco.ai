@@ -69,6 +69,13 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
     window.open('https://app.regrid.com/us/ga#t=property&p=/us/ga/fulton/atlanta/367416', '_blank');
   };
 
+  const openGSCCCA = (geoAddress) => {
+    if (geoAddress) {
+      const url = `https://search.gsccca.org/PT61Premium/MapSearch.aspx?address=${encodeURIComponent(geoAddress)}`;
+      window.open(url, '_blank');
+    }
+  };
+
   const handleOneDriveClick = async (project) => {
     if (project.onedrivefolderurl) {
       // Direct link to shared folder
@@ -320,6 +327,14 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                     title="Copy address and open Regrid"
                   >
                     🗺️ Regrid
+                  </button>
+                  <button 
+                    onClick={() => openGSCCCA(project.geoAddress)}
+                    className="btn-action gsccca-button"
+                    disabled={!project.geoAddress}
+                    title="Open GSCCCA with address"
+                  >
+                    🏛️ GSCCCA
                   </button>
                   <button 
                     onClick={() => toggleCardExpansion(project.id)}

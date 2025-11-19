@@ -212,6 +212,14 @@
   background-color: #5a32a3;
 }
 
+.gsccca-button {
+  background-color: #e91e63;
+}
+
+.gsccca-button:hover:not(:disabled) {
+  background-color: #c2185b;
+}
+
 .card-additional {
   background-color: #f8f9fa;
   border-top: 1px solid #dee2e6;
