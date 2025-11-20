@@ -579,7 +579,9 @@ app.get('/api/projects', async (req, res) => {
       district: row.district,
       county: row.county,
       deedBook: row.deed_book,
-      deedPage: row.deed_page
+      deedPage: row.deed_page,
+      platBook: row.plat_book,
+      platPage: row.plat_page
     }));
     res.json(projects);
   } catch (error) {
@@ -820,6 +822,12 @@ app.patch('/api/projects/:id', async (req, res) => {
         case 'deedPage':
           dbUpdates.deed_page = value;
           break;
+        case 'platBook':
+          dbUpdates.plat_book = value;
+          break;
+        case 'platPage':
+          dbUpdates.plat_page = value;
+          break;
         default:
           dbUpdates[key] = value;
       }
@@ -885,7 +893,9 @@ app.patch('/api/projects/:id', async (req, res) => {
       district: result.rows[0].district,
       county: result.rows[0].county,
       deedBook: result.rows[0].deed_book,
-      deedPage: result.rows[0].deed_page
+      deedPage: result.rows[0].deed_page,
+      platBook: result.rows[0].plat_book,
+      platPage: result.rows[0].plat_page
     };
     res.json(updatedProject);
   } catch (error) {

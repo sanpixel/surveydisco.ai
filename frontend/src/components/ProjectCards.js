@@ -283,6 +283,8 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                 {renderField(project, 'county', project.county, 'County')}
                 {renderField(project, 'deedBook', project.deedBook, 'Deed Book')}
                 {renderField(project, 'deedPage', project.deedPage, 'Deed Page')}
+                {renderField(project, 'platBook', project.platBook, 'Plat Book')}
+                {renderField(project, 'platPage', project.platPage, 'Plat Page')}
               </div>
             )}
 
