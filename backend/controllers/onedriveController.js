@@ -235,6 +235,143 @@ class OneDriveController {
     // Upload to project folder with new name
     await this.graphService.uploadFile(folderPath, fileName, templateContent, accessToken);
   }
+
+  async getPublicFiles(req, res) {
+    try {
+      const { projectId } = req.params;
+
+      if (!projectId) {
+        return res.status(400).json({ error: 'Project ID required' });
+      }
+
+      // Get project's OneDrive folder URL from database
+      const result = await this.pool.query(
+        'SELECT onedrive_folder_url FROM surveydisco_projects WHERE id = $1',
+        [projectId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      const folderUrl = result.rows[0].onedrive_folder_url;
+      
+      if (!folderUrl) {
+        return res.json({ 
+          files: [], 
+          folderInitialized: false,
+          message: 'OneDrive folder not initialized' 
+        });
+      }
+
+      // Fetch files from public OneDrive share
+      const files = await this.graphService.getPublicFiles(folderUrl);
+      
+      res.json({ 
+        files, 
+        folderInitialized: true,
+        shareUrl: folderUrl 
+      });
+    } catch (error) {
+      console.error('Error fetching public files:', error);
+      
+      if (error.message.includes('Invalid share URL')) {
+        return res.status(400).json({ error: 'Invalid OneDrive share URL' });
+      }
+      
+      res.status(500).json({ 
+        error: 'Failed to fetch files',
+        details: error.message 
+      });
+    }
+  }
+
+  async getPublicThumbnails(req, res) {
+    try {
+      const { projectId } = req.params;
+      const { fileId } = req.body;
+
+      if (!projectId || !fileId) {
+        return res.status(400).json({ error: 'Project ID and file ID required' });
+      }
+
+      // Get project's OneDrive folder URL from database
+      const result = await this.pool.query(
+        'SELECT onedrive_folder_url FROM surveydisco_projects WHERE id = $1',
+        [projectId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      const folderUrl = result.rows[0].onedrive_folder_url;
+      
+      if (!folderUrl) {
+        return res.status(404).json({ error: 'OneDrive folder not initialized' });
+      }
+
+      // Fetch thumbnail from public OneDrive share
+      const thumbnailUrl = await this.graphService.getPublicFileThumbnails(folderUrl, fileId);
+      
+      res.json({ thumbnailUrl });
+    } catch (error) {
+      console.error('Error fetching thumbnail:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch thumbnail',
+        details: error.message 
+      });
+    }
+  }
+
+  async getPublicFileContent(req, res) {
+    try {
+      const { projectId, fileId } = req.params;
+      const maxSize = req.query.maxSize ? parseInt(req.query.maxSize) : 10 * 1024 * 1024; // 10MB default
+
+      if (!projectId || !fileId) {
+        return res.status(400).json({ error: 'Project ID and file ID required' });
+      }
+
+      // Get project's OneDrive folder URL from database
+      const result = await this.pool.query(
+        'SELECT onedrive_folder_url FROM surveydisco_projects WHERE id = $1',
+        [projectId]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Project not found' });
+      }
+
+      const folderUrl = result.rows[0].onedrive_folder_url;
+      
+      if (!folderUrl) {
+        return res.status(404).json({ error: 'OneDrive folder not initialized' });
+      }
+
+      // Fetch file content from public OneDrive share
+      const content = await this.graphService.getPublicFileContent(folderUrl, fileId, maxSize);
+      
+      // Set appropriate headers for file download/preview
+      res.set({
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': content.byteLength
+      });
+      
+      res.send(Buffer.from(content));
+    } catch (error) {
+      console.error('Error fetching file content:', error);
+      
+      if (error.message.includes('File too large')) {
+        return res.status(413).json({ error: error.message });
+      }
+      
+      res.status(500).json({ 
+        error: 'Failed to fetch file content',
+        details: error.message 
+      });
+    }
+  }
 }
 
 module.exports = OneDriveController;

@@ -1,0 +1,348 @@
+.flippable-card-container {
+  perspective: 1000px;
+  width: 100%;
+  height: auto;
+  min-height: 400px;
+}
+
+.flippable-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.flippable-card-container.flipped .flippable-card {
+  transform: rotateY(180deg);
+}
+
+.card-front,
+.card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-front {
+  z-index: 2;
+  transform: rotateY(0deg);
+}
+
+.card-back {
+  transform: rotateY(180deg);
+  background: white;
+  border: 1px solid #dee2e6;
+  padding: 16px;
+}
+
+.flip-button-container {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #f8f9fa;
+}
+
+.btn-flip,
+.btn-flip-back {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #007bff;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-flip:hover:not(:disabled),
+.btn-flip-back:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.btn-flip:disabled,
+.btn-flip-back:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.file-preview-placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.file-preview-header h3 {
+  margin: 0;
+  color: #495057;
+  font-size: 16px;
+}
+
+.file-preview-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #6c757d;
+}
+
+.files-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.folder-not-initialized {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.folder-not-initialized p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.folder-not-initialized p:first-child {
+  font-weight: 600;
+  color: #495057;
+}
+
+/* Animation state classes */
+.flippable-card-container.animating {
+  pointer-events: none; /* Prevent interactions during animation */
+}
+
+/* Ensure independent animations for multiple cards */
+.flippable-card-container {
+  isolation: isolate; /* Create new stacking context */
+  will-change: transform; /* Optimize for animations */
+}
+
+/* Fallback for browsers without 3D transform support */
+@supports not (transform-style: preserve-3d) {
+  .flippable-card {
+    transition: opacity 0.4s ease-in-out;
+  }
+  
+  .flippable-card-container.flipped .card-front {
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  .flippable-card-container.flipped .card-back {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  .card-back {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* Additional fallback for older browsers */
+@supports not (perspective: 1000px) {
+  .flippable-card-container {
+    perspective: none;
+  }
+  
+  .flippable-card {
+    transform-style: flat;
+  }
+  
+  .flippable-card-container.flipped .flippable-card {
+    transform: none;
+  }
+  
+  /* Use simple fade transition instead */
+  .card-front,
+  .card-back {
+    transition: opacity 0.4s ease-in-out;
+  }
+  
+  .flippable-card-container:not(.flipped) .card-back {
+    opacity: 0;
+    pointer-events: none;
+  }
+  
+  .flippable-card-container.flipped .card-front {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .flippable-card-container {
+    min-height: 350px;
+  }
+  
+  .file-preview-header h3 {
+    font-size: 14px;
+  }
+  
+  .btn-flip,
+  .btn-flip-back {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+}
+.flip-back-button-container {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.flip-back-button-container .btn-flip-back {
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #6c757d;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.flip-back-button-container .btn-flip-back:hover:not(:disabled) {
+  background-color: #5a6268;
+}
+
+.flip-back-button-container .btn-flip-back:disabled {
+  background-color: #adb5bd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+/* Enhanced responsive behavior */
+@media (max-width: 480px) {
+  .flippable-card-container {
+    min-height: 320px;
+  }
+  
+  .flip-button-container {
+    padding-top: 6px;
+    margin-top: 6px;
+  }
+  
+  .btn-flip,
+  .flip-back-button-container .btn-flip-back {
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  
+  .flip-back-button-container {
+    bottom: 12px;
+    right: 12px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .card-front,
+  .card-back {
+    border: 2px solid #000;
+  }
+  
+  .btn-flip,
+  .flip-back-button-container .btn-flip-back {
+    border: 1px solid #000;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .flippable-card {
+    transition: none;
+  }
+  
+  .flippable-card-container.flipped .flippable-card {
+    transform: none;
+  }
+  
+  /* Use instant state change instead of animation */
+  .flippable-card-container:not(.flipped) .card-back {
+    display: none;
+  }
+  
+  .flippable-card-container.flipped .card-front {
+    display: none;
+  }
+  
+  .flippable-card-container.flipped .card-back {
+    display: block;
+  }
+}
+
+/* Focus states for accessibility */
+.btn-flip:focus,
+.flip-back-button-container .btn-flip-back:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Improved button hover effects */
+.btn-flip,
+.flip-back-button-container .btn-flip-back {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.btn-flip::before,
+.flip-back-button-container .btn-flip-back::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.btn-flip:hover::before,
+.flip-back-button-container .btn-flip-back:hover::before {
+  width: 60px;
+  height: 60px;
+}

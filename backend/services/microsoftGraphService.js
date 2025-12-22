@@ -259,6 +259,140 @@ class MicrosoftGraphService {
     }
   }
 
+  async getPublicFiles(shareUrl) {
+    try {
+      // Convert OneDrive share URL to API endpoint
+      const apiUrl = this.convertShareUrlToApiUrl(shareUrl);
+      
+      const response = await fetch(`${apiUrl}/children`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch files: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      return data.value.map(file => ({
+        id: file.id,
+        name: file.name,
+        size: file.size,
+        lastModified: new Date(file.lastModifiedDateTime),
+        mimeType: file.file?.mimeType || 'application/octet-stream',
+        webUrl: file.webUrl,
+        downloadUrl: file['@microsoft.graph.downloadUrl'],
+        isPreviewable: this.isFilePreviewable(file.file?.mimeType)
+      }));
+    } catch (error) {
+      console.error('Error fetching public files:', error);
+      throw error;
+    }
+  }
+
+  async getPublicFileThumbnails(shareUrl, fileId) {
+    try {
+      const apiUrl = this.convertShareUrlToApiUrl(shareUrl);
+      
+      const response = await fetch(`${apiUrl}/items/${fileId}/thumbnails`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch thumbnail: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Return the medium size thumbnail URL if available
+      if (data.value && data.value.length > 0) {
+        const thumbnail = data.value[0];
+        return thumbnail.medium?.url || thumbnail.small?.url || thumbnail.large?.url;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error fetching thumbnail:', error);
+      return null; // Don't fail the whole operation for missing thumbnails
+    }
+  }
+
+  async getPublicFileContent(shareUrl, fileId, maxSize = 10 * 1024 * 1024) {
+    try {
+      const apiUrl = this.convertShareUrlToApiUrl(shareUrl);
+      
+      // First get file info to check size
+      const fileInfoResponse = await fetch(`${apiUrl}/items/${fileId}`, {
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (!fileInfoResponse.ok) {
+        throw new Error(`Failed to fetch file info: ${fileInfoResponse.status}`);
+      }
+
+      const fileInfo = await fileInfoResponse.json();
+      
+      if (fileInfo.size > maxSize) {
+        throw new Error(`File too large: ${fileInfo.size} bytes (max: ${maxSize})`);
+      }
+
+      // Get file content
+      const contentResponse = await fetch(`${apiUrl}/items/${fileId}/content`, {
+        headers: {
+          'Accept': 'application/octet-stream'
+        }
+      });
+
+      if (!contentResponse.ok) {
+        throw new Error(`Failed to fetch file content: ${contentResponse.status}`);
+      }
+
+      return await contentResponse.arrayBuffer();
+    } catch (error) {
+      console.error('Error fetching file content:', error);
+      throw error;
+    }
+  }
+
+  convertShareUrlToApiUrl(shareUrl) {
+    // Convert OneDrive share URL to Graph API URL
+    // Example: https://1drv.ms/f/s!... -> https://graph.microsoft.com/v1.0/shares/{encoded-url}/root
+    try {
+      const encodedUrl = Buffer.from(shareUrl).toString('base64')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+      
+      return `https://graph.microsoft.com/v1.0/shares/u!${encodedUrl}/root`;
+    } catch (error) {
+      throw new Error(`Invalid share URL: ${shareUrl}`);
+    }
+  }
+
+  isFilePreviewable(mimeType) {
+    if (!mimeType) return false;
+    
+    const previewableTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/bmp',
+      'image/webp',
+      'text/plain',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    
+    return previewableTypes.includes(mimeType.toLowerCase());
+  }
+
   sanitizeFolderName(name) {
     if (!name) return 'Untitled';
     

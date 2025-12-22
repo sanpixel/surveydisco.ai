@@ -992,6 +992,19 @@ app.get('/api/onedrive/callback', async (req, res) => {
   await onedriveController.handleCallback(req, res);
 });
 
+// New public file endpoints
+app.get('/api/onedrive/public-files/:projectId', async (req, res) => {
+  await onedriveController.getPublicFiles(req, res);
+});
+
+app.post('/api/onedrive/public-thumbnails/:projectId', async (req, res) => {
+  await onedriveController.getPublicThumbnails(req, res);
+});
+
+app.get('/api/onedrive/public-file-content/:projectId/:fileId', async (req, res) => {
+  await onedriveController.getPublicFileContent(req, res);
+});
+
 // Gmail authentication endpoints
 app.get('/api/gmail/auth', async (req, res) => {
   try {
