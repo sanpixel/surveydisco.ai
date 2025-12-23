@@ -8,11 +8,12 @@
 
 .file-preview-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   padding: 16px 16px 12px 16px;
   border-bottom: 1px solid #e9ecef;
   flex-shrink: 0;
+  gap: 12px;
 }
 
 .file-preview-header h3 {
@@ -160,7 +161,7 @@
 .file-details {
   flex: 1;
   min-width: 0;
-  width: 0;
+  overflow-x: auto;
 }
 
 .file-name {
@@ -168,8 +169,9 @@
   font-weight: 500;
   color: #495057;
   margin-bottom: 4px;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
 }
 
 .file-metadata {

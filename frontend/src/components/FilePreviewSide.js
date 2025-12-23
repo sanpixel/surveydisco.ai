@@ -150,7 +150,7 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false, onHeaderCli
     return (
       <div className="file-preview-side">
         <div className="file-preview-header" onClick={onHeaderClick}>
-          <h3>#{project?.jobNumber} - Live Project Files</h3>
+          <h3>#{project?.jobNumber}</h3>
         </div>
         <div className="file-preview-content">
           <div className="folder-not-initialized">
@@ -167,7 +167,7 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false, onHeaderCli
     return (
       <div className="file-preview-side">
         <div className="file-preview-header" onClick={onHeaderClick}>
-          <h3>#{project?.jobNumber} - Live Project Files</h3>
+          <h3>#{project?.jobNumber}</h3>
         </div>
         <div className="file-preview-content">
           <div className="files-loading">
@@ -183,7 +183,7 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false, onHeaderCli
     return (
       <div className="file-preview-side">
         <div className="file-preview-header" onClick={onHeaderClick}>
-          <h3>#{project?.jobNumber} - Live Project Files</h3>
+          <h3>#{project?.jobNumber}</h3>
         </div>
         <div className="file-preview-content">
           <div className="files-error">
@@ -206,7 +206,7 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false, onHeaderCli
     return (
       <div className="file-preview-side">
         <div className="file-preview-header" onClick={onHeaderClick}>
-          <h3>#{project?.jobNumber} - Live Project Files</h3>
+          <h3>#{project?.jobNumber}</h3>
         </div>
         <div className="file-preview-content">
           <div className="no-files">
@@ -222,7 +222,7 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false, onHeaderCli
   return (
     <div className="file-preview-side">
       <div className="file-preview-header" onClick={onHeaderClick}>
-        <h3>#{project?.jobNumber} - Live Project Files</h3>
+        <h3>#{project?.jobNumber}</h3>
         <div className="file-count">{files.length} file{files.length !== 1 ? 's' : ''}</div>
       </div>
       <div className="file-preview-content">
