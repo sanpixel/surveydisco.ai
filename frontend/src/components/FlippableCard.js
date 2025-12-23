@@ -10,20 +10,23 @@ const FlippableCard = ({ children, project, onFlip, onFileSelect }) => {
   const handleFlip = () => {
     if (isAnimating) return; // Prevent multiple simultaneous flips on same card
     
-    const cardId = `card-${project?.id || Math.random()}`;
+    const cardId = `card-${project?.jobNumber || Math.random()}`;
+    console.log('🔄 [FlippableCard] Flip initiated for job:', project.jobNumber);
     
     setIsAnimating(true);
     const newFlippedState = !isFlipped;
     setIsFlipped(newFlippedState);
     
     // Invalidate cache when flipping to refresh file data
-    if (newFlippedState && project?.id) {
-      fileCacheService.invalidateProjectCache(project.id);
+    if (newFlippedState && project?.jobNumber) {
+      console.log('🔄 [FlippableCard] Card flipped, invalidating cache for job:', project.jobNumber);
+      fileCacheService.invalidateProjectCache(project.jobNumber);
     }
     
     // Call parent callback if provided
     if (onFlip) {
-      onFlip(project.id, newFlippedState);
+      console.log('📞 [FlippableCard] Calling onFlip callback for job:', project.jobNumber, 'flipped:', newFlippedState);
+      onFlip(project.jobNumber, newFlippedState);
     }
     
     // Reset animation state after animation completes (400ms)
@@ -49,7 +52,7 @@ const FlippableCard = ({ children, project, onFlip, onFileSelect }) => {
   // Prevent multiple simultaneous flips and ensure independent animations
   useEffect(() => {
     // Add unique identifier to prevent interference between cards
-    const cardId = `card-${project?.id || Math.random()}`;
+    const cardId = `card-${project?.jobNumber || Math.random()}`;
     
     return () => {
       // Cleanup any pending timeouts for this specific card
@@ -59,7 +62,7 @@ const FlippableCard = ({ children, project, onFlip, onFileSelect }) => {
         delete timeouts[cardId];
       }
     };
-  }, [project?.id]);
+  }, [project?.jobNumber]);
 
   return (
     <div className={`flippable-card-container ${isFlipped ? 'flipped' : ''} ${isAnimating ? 'animating' : ''}`}>
@@ -81,6 +84,7 @@ const FlippableCard = ({ children, project, onFlip, onFileSelect }) => {
           <FilePreviewSide 
             project={project} 
             onFileSelect={onFileSelect}
+            isVisible={isFlipped}
           />
           <div className="flip-back-button-container">
             <button 

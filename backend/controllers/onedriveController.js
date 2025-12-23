@@ -238,34 +238,50 @@ class OneDriveController {
 
   async getPublicFiles(req, res) {
     try {
-      const { projectId } = req.params;
+      const { jobNumber } = req.params;
+      console.log('🔍 [OneDrive] getPublicFiles called with jobNumber:', jobNumber);
 
-      if (!projectId) {
-        return res.status(400).json({ error: 'Project ID required' });
+      if (!jobNumber) {
+        console.log('❌ [OneDrive] No jobNumber provided');
+        return res.status(400).json({ error: 'Job number required' });
       }
 
       // Get project's OneDrive folder URL from database
+      console.log('🗃️ [OneDrive] Querying database for job_number:', jobNumber);
       const result = await this.pool.query(
-        'SELECT onedrive_folder_url FROM surveydisco_projects WHERE id = $1',
-        [projectId]
+        'SELECT onedrive_folder_url FROM surveydisco_projects WHERE job_number = $1',
+        [jobNumber]
       );
 
       if (result.rows.length === 0) {
+        console.log('❌ [OneDrive] Project not found for job_number:', jobNumber);
         return res.status(404).json({ error: 'Project not found' });
       }
 
       const folderUrl = result.rows[0].onedrive_folder_url;
+      console.log('📁 [OneDrive] Found folder URL:', folderUrl ? 'URL exists' : 'No URL');
       
       if (!folderUrl) {
-        return res.json({ 
-          files: [], 
-          folderInitialized: false,
-          message: 'OneDrive folder not initialized' 
+        console.log('⚠️ [OneDrive] OneDrive folder not initialized for job:', jobNumber);
+        return res.status(400).json({ 
+          error: 'OneDrive folder not initialized',
+          message: 'Click the Init button to set up OneDrive access for this project'
+        });
+      }
+
+      // Check if Microsoft Graph service is properly configured
+      if (!this.graphService.clientId || !this.graphService.clientSecret || !this.graphService.tenantId) {
+        console.log('❌ [OneDrive] Microsoft Graph credentials missing');
+        return res.status(500).json({ 
+          error: 'OneDrive service not configured',
+          message: 'Microsoft Graph credentials are missing from server configuration'
         });
       }
 
       // Fetch files from public OneDrive share
+      console.log('☁️ [OneDrive] Calling Microsoft Graph API for files...');
       const files = await this.graphService.getPublicFiles(folderUrl);
+      console.log('✅ [OneDrive] Retrieved', files.length, 'files from OneDrive');
       
       res.json({ 
         files, 
@@ -273,50 +289,67 @@ class OneDriveController {
         shareUrl: folderUrl 
       });
     } catch (error) {
-      console.error('Error fetching public files:', error);
+      console.error('❌ [OneDrive] Error fetching public files:', error);
       
       if (error.message.includes('Invalid share URL')) {
-        return res.status(400).json({ error: 'Invalid OneDrive share URL' });
+        return res.status(400).json({ 
+          error: 'Invalid OneDrive share URL',
+          message: 'The OneDrive folder URL is malformed. Try re-initializing the folder.'
+        });
+      }
+      
+      if (error.message.includes('MSAL client not initialized')) {
+        return res.status(500).json({ 
+          error: 'OneDrive service not configured',
+          message: 'Microsoft Graph credentials are missing from server configuration'
+        });
       }
       
       res.status(500).json({ 
         error: 'Failed to fetch files',
-        details: error.message 
+        message: error.message || 'Unknown error occurred'
       });
     }
   }
 
   async getPublicThumbnails(req, res) {
     try {
-      const { projectId } = req.params;
+      const { jobNumber } = req.params;
       const { fileId } = req.body;
+      console.log('🖼️ [OneDrive] getPublicThumbnails called with jobNumber:', jobNumber, 'fileId:', fileId);
 
-      if (!projectId || !fileId) {
-        return res.status(400).json({ error: 'Project ID and file ID required' });
+      if (!jobNumber || !fileId) {
+        console.log('❌ [OneDrive] Missing jobNumber or fileId');
+        return res.status(400).json({ error: 'Job number and file ID required' });
       }
 
       // Get project's OneDrive folder URL from database
+      console.log('🗃️ [OneDrive] Querying database for thumbnails...');
       const result = await this.pool.query(
-        'SELECT onedrive_folder_url FROM surveydisco_projects WHERE id = $1',
-        [projectId]
+        'SELECT onedrive_folder_url FROM surveydisco_projects WHERE job_number = $1',
+        [jobNumber]
       );
 
       if (result.rows.length === 0) {
+        console.log('❌ [OneDrive] Project not found for thumbnails');
         return res.status(404).json({ error: 'Project not found' });
       }
 
       const folderUrl = result.rows[0].onedrive_folder_url;
       
       if (!folderUrl) {
+        console.log('⚠️ [OneDrive] OneDrive folder not initialized for thumbnails');
         return res.status(404).json({ error: 'OneDrive folder not initialized' });
       }
 
       // Fetch thumbnail from public OneDrive share
+      console.log('☁️ [OneDrive] Fetching thumbnail from Microsoft Graph...');
       const thumbnailUrl = await this.graphService.getPublicFileThumbnails(folderUrl, fileId);
+      console.log('✅ [OneDrive] Thumbnail retrieved:', thumbnailUrl ? 'Success' : 'No thumbnail');
       
       res.json({ thumbnailUrl });
     } catch (error) {
-      console.error('Error fetching thumbnail:', error);
+      console.error('❌ [OneDrive] Error fetching thumbnail:', error);
       res.status(500).json({ 
         error: 'Failed to fetch thumbnail',
         details: error.message 
@@ -326,31 +359,38 @@ class OneDriveController {
 
   async getPublicFileContent(req, res) {
     try {
-      const { projectId, fileId } = req.params;
+      const { jobNumber, fileId } = req.params;
       const maxSize = req.query.maxSize ? parseInt(req.query.maxSize) : 10 * 1024 * 1024; // 10MB default
+      console.log('📄 [OneDrive] getPublicFileContent called with jobNumber:', jobNumber, 'fileId:', fileId);
 
-      if (!projectId || !fileId) {
-        return res.status(400).json({ error: 'Project ID and file ID required' });
+      if (!jobNumber || !fileId) {
+        console.log('❌ [OneDrive] Missing jobNumber or fileId for file content');
+        return res.status(400).json({ error: 'Job number and file ID required' });
       }
 
       // Get project's OneDrive folder URL from database
+      console.log('🗃️ [OneDrive] Querying database for file content...');
       const result = await this.pool.query(
-        'SELECT onedrive_folder_url FROM surveydisco_projects WHERE id = $1',
-        [projectId]
+        'SELECT onedrive_folder_url FROM surveydisco_projects WHERE job_number = $1',
+        [jobNumber]
       );
 
       if (result.rows.length === 0) {
+        console.log('❌ [OneDrive] Project not found for file content');
         return res.status(404).json({ error: 'Project not found' });
       }
 
       const folderUrl = result.rows[0].onedrive_folder_url;
       
       if (!folderUrl) {
+        console.log('⚠️ [OneDrive] OneDrive folder not initialized for file content');
         return res.status(404).json({ error: 'OneDrive folder not initialized' });
       }
 
       // Fetch file content from public OneDrive share
+      console.log('☁️ [OneDrive] Fetching file content from Microsoft Graph...');
       const content = await this.graphService.getPublicFileContent(folderUrl, fileId, maxSize);
+      console.log('✅ [OneDrive] File content retrieved, size:', content.byteLength, 'bytes');
       
       // Set appropriate headers for file download/preview
       res.set({
@@ -360,7 +400,7 @@ class OneDriveController {
       
       res.send(Buffer.from(content));
     } catch (error) {
-      console.error('Error fetching file content:', error);
+      console.error('❌ [OneDrive] Error fetching file content:', error);
       
       if (error.message.includes('File too large')) {
         return res.status(413).json({ error: error.message });

@@ -7,37 +7,43 @@ class FileCacheService {
   }
 
   // Session storage utilities for file and thumbnail caching
-  getCachedFiles(projectId) {
+  getCachedFiles(jobNumber) {
     try {
-      const cacheKey = `${this.sessionStoragePrefix}files_${projectId}`;
+      const cacheKey = `${this.sessionStoragePrefix}files_${jobNumber}`;
+      console.log('🗂️ [FileCache] Checking cache for job:', jobNumber);
       const cached = sessionStorage.getItem(cacheKey);
       if (cached) {
         const data = JSON.parse(cached);
         // Check if cache is still valid (1 hour expiration)
         const now = Date.now();
         if (now - data.timestamp < 3600000) { // 1 hour in milliseconds
+          console.log('✅ [FileCache] Cache hit for job:', jobNumber, '- returning', data.files.length, 'files');
           return data.files;
         } else {
           // Cache expired, remove it
+          console.log('⏰ [FileCache] Cache expired for job:', jobNumber, '- removing');
           sessionStorage.removeItem(cacheKey);
         }
+      } else {
+        console.log('❌ [FileCache] No cache found for job:', jobNumber);
       }
     } catch (error) {
-      console.warn('Failed to read cached files:', error);
+      console.warn('❌ [FileCache] Failed to read cached files:', error);
     }
     return null;
   }
 
-  setCachedFiles(projectId, files) {
+  setCachedFiles(jobNumber, files) {
     try {
-      const cacheKey = `${this.sessionStoragePrefix}files_${projectId}`;
+      const cacheKey = `${this.sessionStoragePrefix}files_${jobNumber}`;
+      console.log('💾 [FileCache] Caching', files.length, 'files for job:', jobNumber);
       const data = {
         files,
         timestamp: Date.now()
       };
       sessionStorage.setItem(cacheKey, JSON.stringify(data));
     } catch (error) {
-      console.warn('Failed to cache files:', error);
+      console.warn('❌ [FileCache] Failed to cache files:', error);
     }
   }
 
@@ -95,19 +101,20 @@ class FileCacheService {
   }
 
   // Cache invalidation on card flip
-  invalidateProjectCache(projectId) {
+  invalidateProjectCache(jobNumber) {
     try {
       // Remove files cache
-      const filesCacheKey = `${this.sessionStoragePrefix}files_${projectId}`;
+      const filesCacheKey = `${this.sessionStoragePrefix}files_${jobNumber}`;
+      console.log('🗑️ [FileCache] Invalidating cache for job:', jobNumber);
       sessionStorage.removeItem(filesCacheKey);
       
       // Remove all thumbnail caches for this project
-      // Note: We don't have a direct way to map fileIds to projectId in session storage,
+      // Note: We don't have a direct way to map fileIds to jobNumber in session storage,
       // so we'll let thumbnails expire naturally or implement a more sophisticated mapping
       
-      console.log(`Cache invalidated for project ${projectId}`);
+      console.log('✅ [FileCache] Cache invalidated for job:', jobNumber);
     } catch (error) {
-      console.warn('Failed to invalidate cache:', error);
+      console.warn('❌ [FileCache] Failed to invalidate cache:', error);
     }
   }
 
@@ -150,19 +157,22 @@ class FileCacheService {
   }
 
   // Enhanced file loading with caching
-  async loadFilesWithCache(projectId, fetchFunction) {
+  async loadFilesWithCache(jobNumber, fetchFunction) {
+    console.log('📂 [FileCache] loadFilesWithCache called for job:', jobNumber);
     // Try to get from cache first
-    const cachedFiles = this.getCachedFiles(projectId);
+    const cachedFiles = this.getCachedFiles(jobNumber);
     if (cachedFiles) {
+      console.log('✅ [FileCache] Returning cached files for job:', jobNumber);
       return cachedFiles;
     }
 
     // If not in cache, fetch from API
     try {
+      console.log('🌐 [FileCache] No cache found, fetching from API for job:', jobNumber);
       const files = await fetchFunction();
       
       // Cache the results
-      this.setCachedFiles(projectId, files);
+      this.setCachedFiles(jobNumber, files);
       
       // Also cache any thumbnails that came with the files
       files.forEach(file => {
@@ -174,7 +184,7 @@ class FileCacheService {
       return files;
     } catch (error) {
       // If fetch fails, return empty array but don't cache the failure
-      console.error('Failed to load files:', error);
+      console.error('❌ [FileCache] Failed to load files for job:', jobNumber, error);
       throw error;
     }
   }

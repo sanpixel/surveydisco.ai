@@ -1,9 +1,7 @@
 // Error handling service for OneDrive file operations
 class ErrorHandlingService {
   constructor() {
-    this.retryAttempts = new Map();
-    this.maxRetries = 3;
-    this.retryDelay = 1000; // 1 second base delay
+    // No retry logic - fail fast and clear
   }
 
   // File size limits (in bytes)
@@ -56,17 +54,10 @@ class ErrorHandlingService {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
-  // Handle API errors with retry logic
+  // Simple API call handler - no retries, just fail fast with clear errors
   async handleApiCall(operation, apiCall, context = {}) {
-    const operationKey = `${operation}_${context.fileId || context.projectId || 'unknown'}`;
-    const currentAttempts = this.retryAttempts.get(operationKey) || 0;
-
     try {
       const result = await apiCall();
-      
-      // Clear retry count on success
-      this.retryAttempts.delete(operationKey);
-      
       return {
         success: true,
         data: result
@@ -74,54 +65,12 @@ class ErrorHandlingService {
     } catch (error) {
       console.error(`API call failed for ${operation}:`, error);
       
-      // Check if we should retry
-      if (this.shouldRetry(error, currentAttempts)) {
-        this.retryAttempts.set(operationKey, currentAttempts + 1);
-        
-        // Wait before retrying with exponential backoff
-        const delay = this.retryDelay * Math.pow(2, currentAttempts);
-        await this.sleep(delay);
-        
-        console.log(`Retrying ${operation} (attempt ${currentAttempts + 1}/${this.maxRetries})`);
-        return this.handleApiCall(operation, apiCall, context);
-      } else {
-        // Clear retry count after max attempts
-        this.retryAttempts.delete(operationKey);
-        
-        return {
-          success: false,
-          error: this.formatError(error, operation),
-          canRetry: this.shouldRetry(error, 0) // Can user manually retry?
-        };
-      }
+      return {
+        success: false,
+        error: this.formatError(error, operation),
+        canRetry: true
+      };
     }
-  }
-
-  // Determine if an error should trigger a retry
-  shouldRetry(error, currentAttempts) {
-    if (currentAttempts >= this.maxRetries) {
-      return false;
-    }
-
-    // Retry on network errors, timeouts, and 5xx server errors
-    if (error.name === 'NetworkError' || 
-        error.name === 'TimeoutError' ||
-        error.message.includes('fetch') ||
-        error.message.includes('network')) {
-      return true;
-    }
-
-    // Check HTTP status codes
-    if (error.status) {
-      // Retry on server errors (5xx) and some client errors
-      if (error.status >= 500 || 
-          error.status === 429 || // Rate limited
-          error.status === 408) { // Request timeout
-        return true;
-      }
-    }
-
-    return false;
   }
 
   // Format error messages for user display
@@ -144,7 +93,7 @@ class ErrorHandlingService {
         case 502:
         case 503:
         case 504:
-          return `Server error during ${operation}. Please try again in a few moments.`;
+          return `Server error during ${operation}. OneDrive service may be unavailable.`;
         default:
           return `Error during ${operation} (${error.status}). Please try again.`;
       }
@@ -160,7 +109,7 @@ class ErrorHandlingService {
     }
 
     // Generic error
-    return `An error occurred during ${operation}. Please try again.`;
+    return `An error occurred during ${operation}: ${error.message || 'Unknown error'}`;
   }
 
   // Handle network connectivity issues
@@ -237,25 +186,7 @@ class ErrorHandlingService {
       action: 'retry'
     };
   }
-
-  // Utility function for delays
-  sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  // Clear all retry attempts (useful for cleanup)
-  clearRetryAttempts() {
-    this.retryAttempts.clear();
-  }
-
-  // Get retry statistics (useful for debugging)
-  getRetryStats() {
-    return {
-      activeRetries: this.retryAttempts.size,
-      maxRetries: this.maxRetries,
-      retryDelay: this.retryDelay
-    };
-  }
+}
 }
 
 // Export a singleton instance

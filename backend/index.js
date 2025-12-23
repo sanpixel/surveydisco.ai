@@ -544,7 +544,19 @@ async function parseProjectText(text) {
 }
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', service: 'SurveyDisco.ai', port: PORT });
+  const microsoftConfigured = !!(process.env.MICROSOFT_CLIENT_ID && process.env.MICROSOFT_CLIENT_SECRET && process.env.MICROSOFT_TENANT_ID);
+  
+  res.json({ 
+    status: 'OK', 
+    service: 'SurveyDisco.ai', 
+    port: PORT,
+    services: {
+      database: !!process.env.DATABASE_URL,
+      openai: !!process.env.OPENAI_API_KEY,
+      googleMaps: !!process.env.GOOGLE_MAPS_API_KEY,
+      microsoftGraph: microsoftConfigured
+    }
+  });
 });
 
 // Get all projects
@@ -993,15 +1005,15 @@ app.get('/api/onedrive/callback', async (req, res) => {
 });
 
 // New public file endpoints
-app.get('/api/onedrive/public-files/:projectId', async (req, res) => {
+app.get('/api/onedrive/public-files/:jobNumber', async (req, res) => {
   await onedriveController.getPublicFiles(req, res);
 });
 
-app.post('/api/onedrive/public-thumbnails/:projectId', async (req, res) => {
+app.post('/api/onedrive/public-thumbnails/:jobNumber', async (req, res) => {
   await onedriveController.getPublicThumbnails(req, res);
 });
 
-app.get('/api/onedrive/public-file-content/:projectId/:fileId', async (req, res) => {
+app.get('/api/onedrive/public-file-content/:jobNumber/:fileId', async (req, res) => {
   await onedriveController.getPublicFileContent(req, res);
 });
 

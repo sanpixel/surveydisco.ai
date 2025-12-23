@@ -5,20 +5,28 @@ import errorHandlingService from '../services/errorHandlingService';
 import ThumbnailLoader from './ThumbnailLoader';
 import QuickPreviewModal from './QuickPreviewModal';
 
-const FilePreviewSide = ({ project, onFileSelect }) => {
+const FilePreviewSide = ({ project, onFileSelect, isVisible = false }) => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
-    if (project?.onedrivefolderurl) {
+    // Only load files when the component becomes visible AND has a folder URL
+    if (isVisible && project?.onedrivefolderurl && !hasLoaded) {
+      console.log('👁️ [FilePreview] Component became visible, loading files for project:', project.jobNumber);
       loadFiles();
+    } else if (isVisible && !project?.onedrivefolderurl) {
+      console.log('⚠️ [FilePreview] Component visible but no OneDrive folder URL for project:', project.jobNumber);
+    } else if (!isVisible) {
+      console.log('👁️‍🗨️ [FilePreview] Component not visible for project:', project.jobNumber);
     }
-  }, [project?.onedrivefolderurl]);
+  }, [isVisible, project?.onedrivefolderurl, hasLoaded]);
 
   const loadFiles = async () => {
+    console.log('🔄 [FilePreview] Starting to load files for project:', project.jobNumber);
     setLoading(true);
     setError(null);
     
@@ -27,28 +35,34 @@ const FilePreviewSide = ({ project, onFileSelect }) => {
         'load_files',
         async () => {
           const files = await fileCacheService.loadFilesWithCache(
-            project.id,
+            project.jobNumber,
             async () => {
-              const response = await fetch(`/api/onedrive/public-files/${project.id}`);
+              console.log('🌐 [FilePreview] Making API call to:', `/api/onedrive/public-files/${project.jobNumber}`);
+              const response = await fetch(`/api/onedrive/public-files/${project.jobNumber}`);
               
               if (!response.ok) {
+                console.log('❌ [FilePreview] API call failed with status:', response.status, response.statusText);
                 const error = new Error(`Failed to load files: ${response.statusText}`);
                 error.status = response.status;
                 throw error;
               }
               
               const data = await response.json();
+              console.log('✅ [FilePreview] API response received:', data.files ? data.files.length : 0, 'files');
               return data.files || [];
             }
           );
           return files;
         },
-        { projectId: project.id }
+        { jobNumber: project.jobNumber }
       );
 
       if (result.success) {
+        console.log('✅ [FilePreview] Files loaded successfully:', result.data.length, 'files');
         setFiles(result.data);
+        setHasLoaded(true);
       } else {
+        console.log('❌ [FilePreview] Failed to load files:', result.error);
         const gracefulError = errorHandlingService.getGracefulErrorMessage(
           { message: result.error },
           { operation: 'loading files' }
@@ -56,7 +70,7 @@ const FilePreviewSide = ({ project, onFileSelect }) => {
         setError(gracefulError);
       }
     } catch (err) {
-      console.error('Error loading files:', err);
+      console.error('❌ [FilePreview] Error loading files:', err);
       const gracefulError = errorHandlingService.getGracefulErrorMessage(
         err,
         { operation: 'loading files' }
@@ -82,9 +96,11 @@ const FilePreviewSide = ({ project, onFileSelect }) => {
   };
 
   const handleRetry = async () => {
+    console.log('🔄 [FilePreview] Retry button clicked for project:', project.jobNumber);
     // Check connectivity first
     const connectivity = await errorHandlingService.checkConnectivity();
     if (!connectivity.online) {
+      console.log('❌ [FilePreview] No internet connection detected');
       const gracefulError = errorHandlingService.getGracefulErrorMessage(
         { message: 'No internet connection' },
         { operation: 'connectivity check' }
@@ -94,7 +110,9 @@ const FilePreviewSide = ({ project, onFileSelect }) => {
     }
 
     // Invalidate cache before retrying
-    fileCacheService.invalidateProjectCache(project.id);
+    console.log('🗑️ [FilePreview] Invalidating cache for project:', project.jobNumber);
+    fileCacheService.invalidateProjectCache(project.jobNumber);
+    setHasLoaded(false); // Reset loaded state to allow reload
     loadFiles();
   };
 
