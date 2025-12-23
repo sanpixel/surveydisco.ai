@@ -3,6 +3,9 @@
 ## Purpose
 Prevent code drift by ensuring new features follow existing patterns instead of inventing new approaches.
 
+## Rule: Always Provide 3 Options
+When proposing a solution, ALWAYS provide 3 options for the user to choose from. The first solution is probably wrong, so give choices and let the user decide.
+
 ## Protocol: Before Writing Any New Feature
 
 ### 1. Search for Similar Code
