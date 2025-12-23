@@ -3,11 +3,13 @@ import './App.css';
 import TextInput from './components/TextInput';
 import ProjectCards from './components/ProjectCards';
 import TodoCard from './components/TodoCard';
+import { AdminProvider, useAdmin } from './contexts/AdminContext';
 
-function App() {
+function AppContent() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [webDevText, setWebDevText] = useState('Each field in Job Cards below are editable. TODO card holds enhancement ideas.');
+  const { toggleAdmin } = useAdmin();
 
   useEffect(() => {
     loadProjects();
@@ -123,7 +125,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>SurveyDisco.ai</h1>
+        <h1 onClick={toggleAdmin}>SurveyDisco.ai</h1>
         <p>Project Management</p>
         <div 
           contentEditable 
@@ -165,6 +167,14 @@ function App() {
         )}
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AdminProvider>
+      <AppContent />
+    </AdminProvider>
   );
 }
 

@@ -4,6 +4,7 @@ import fileCacheService from '../services/fileCacheService';
 import errorHandlingService from '../services/errorHandlingService';
 import ThumbnailLoader from './ThumbnailLoader';
 import QuickPreviewModal from './QuickPreviewModal';
+import { useAdmin } from '../contexts/AdminContext';
 
 const FilePreviewSide = ({ project, onFileSelect, isVisible = false, onHeaderClick }) => {
   const [files, setFiles] = useState([]);
@@ -12,6 +13,10 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false, onHeaderCli
   const [selectedFile, setSelectedFile] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const { isAdmin } = useAdmin();
+
+  // Filter out invoice files unless admin
+  const displayFiles = isAdmin ? files : files.filter(f => !f.name.toLowerCase().includes('invoice'));
 
   useEffect(() => {
     // Only load files when the component becomes visible AND has a folder URL
@@ -202,7 +207,7 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false, onHeaderCli
     );
   }
 
-  if (files.length === 0) {
+  if (displayFiles.length === 0) {
     return (
       <div className="file-preview-side">
         <div className="file-preview-header" onClick={onHeaderClick}>
@@ -223,11 +228,11 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false, onHeaderCli
     <div className="file-preview-side">
       <div className="file-preview-header" onClick={onHeaderClick}>
         <h3>#{project?.jobNumber}</h3>
-        <div className="file-count">{files.length} file{files.length !== 1 ? 's' : ''}</div>
+        <div className="file-count">{displayFiles.length} file{displayFiles.length !== 1 ? 's' : ''}</div>
       </div>
       <div className="file-preview-content">
         <div className="files-list">
-          {files.map((file) => (
+          {displayFiles.map((file) => (
             <div 
               key={file.id} 
               className="file-item"
