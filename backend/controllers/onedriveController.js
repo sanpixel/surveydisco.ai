@@ -88,15 +88,24 @@ class OneDriveController {
         return res.status(400).json({ error: 'Authorization code required' });
       }
 
-      // Exchange code for access token
-      const accessToken = await this.graphService.getTokenFromCode(code);
+      // Exchange code for access token and refresh token
+      const tokens = await this.graphService.getTokenFromCode(code);
 
-      // Store token in session/cookie
+      // Store refresh token in database settings table
+      await this.pool.query(
+        `INSERT INTO surveydisco_settings (setting_key, setting_value) 
+         VALUES ('microsoft_refresh_token', $1)
+         ON CONFLICT (setting_key) DO UPDATE SET setting_value = $1, modified = NOW()`,
+        [tokens.refreshToken]
+      );
+      console.log('[OneDrive] Refresh token saved to database');
+
+      // Store access token in session/cookie for immediate use
       req.session = req.session || {};
-      req.session.accessToken = accessToken;
+      req.session.accessToken = tokens.accessToken;
 
       // Set cookie for future requests
-      res.cookie('onedrive_token', accessToken, {
+      res.cookie('onedrive_token', tokens.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         maxAge: 3600000 // 1 hour
@@ -239,49 +248,56 @@ class OneDriveController {
   async getPublicFiles(req, res) {
     try {
       const { jobNumber } = req.params;
-      console.log('🔍 [OneDrive] getPublicFiles called with jobNumber:', jobNumber);
+      console.log('[OneDrive] getPublicFiles for job:', jobNumber);
 
       if (!jobNumber) {
-        console.log('❌ [OneDrive] No jobNumber provided');
         return res.status(400).json({ error: 'Job number required' });
       }
 
       // Get project's OneDrive folder URL from database
-      console.log('🗃️ [OneDrive] Querying database for job_number:', jobNumber);
       const result = await this.pool.query(
         'SELECT onedrive_folder_url FROM surveydisco_projects WHERE job_number = $1',
         [jobNumber]
       );
 
       if (result.rows.length === 0) {
-        console.log('❌ [OneDrive] Project not found for job_number:', jobNumber);
         return res.status(404).json({ error: 'Project not found' });
       }
 
       const folderUrl = result.rows[0].onedrive_folder_url;
-      console.log('📁 [OneDrive] Found folder URL:', folderUrl ? 'URL exists' : 'No URL');
+      console.log('[OneDrive] Folder URL:', folderUrl);
       
       if (!folderUrl) {
-        console.log('⚠️ [OneDrive] OneDrive folder not initialized for job:', jobNumber);
         return res.status(400).json({ 
           error: 'OneDrive folder not initialized',
           message: 'Click the Init button to set up OneDrive access for this project'
         });
       }
 
-      // Check if Microsoft Graph service is properly configured
-      if (!this.graphService.clientId || !this.graphService.clientSecret || !this.graphService.tenantId) {
-        console.log('❌ [OneDrive] Microsoft Graph credentials missing');
-        return res.status(500).json({ 
-          error: 'OneDrive service not configured',
-          message: 'Microsoft Graph credentials are missing from server configuration'
+      // Get refresh token from settings table
+      const tokenResult = await this.pool.query(
+        "SELECT setting_value FROM surveydisco_settings WHERE setting_key = 'microsoft_refresh_token'"
+      );
+
+      if (tokenResult.rows.length === 0 || !tokenResult.rows[0].setting_value) {
+        console.log('[OneDrive] No refresh token in database - need to authenticate');
+        return res.status(401).json({ 
+          error: 'Microsoft authentication required',
+          message: 'Need to authenticate with Microsoft first. Click Init on any project.',
+          requiresAuth: true
         });
       }
 
-      // Fetch files from public OneDrive share
-      console.log('☁️ [OneDrive] Calling Microsoft Graph API for files...');
-      const files = await this.graphService.getPublicFiles(folderUrl);
-      console.log('✅ [OneDrive] Retrieved', files.length, 'files from OneDrive');
+      const refreshToken = tokenResult.rows[0].setting_value;
+      console.log('[OneDrive] Got refresh token from DB, getting access token...');
+
+      // Get access token from refresh token
+      const accessToken = await this.graphService.getAccessTokenFromRefresh(refreshToken);
+      console.log('[OneDrive] Got access token, fetching files...');
+
+      // Fetch files using authenticated Graph client
+      const files = await this.graphService.getPublicFiles(folderUrl, accessToken);
+      console.log('[OneDrive] Retrieved', files.length, 'files');
       
       res.json({ 
         files, 
@@ -289,25 +305,20 @@ class OneDriveController {
         shareUrl: folderUrl 
       });
     } catch (error) {
-      console.error('❌ [OneDrive] Error fetching public files:', error);
+      console.error('[OneDrive] Error:', error.message);
       
-      if (error.message.includes('Invalid share URL')) {
-        return res.status(400).json({ 
-          error: 'Invalid OneDrive share URL',
-          message: 'The OneDrive folder URL is malformed. Try re-initializing the folder.'
-        });
-      }
-      
-      if (error.message.includes('MSAL client not initialized')) {
-        return res.status(500).json({ 
-          error: 'OneDrive service not configured',
-          message: 'Microsoft Graph credentials are missing from server configuration'
+      if (error.message.includes('invalid_grant') || error.message.includes('AADSTS')) {
+        // Refresh token expired or invalid
+        return res.status(401).json({ 
+          error: 'Microsoft authentication expired',
+          message: 'Need to re-authenticate with Microsoft. Click Init on any project.',
+          requiresAuth: true
         });
       }
       
       res.status(500).json({ 
         error: 'Failed to fetch files',
-        message: error.message || 'Unknown error occurred'
+        message: error.message
       });
     }
   }

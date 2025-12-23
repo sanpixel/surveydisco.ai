@@ -48,11 +48,28 @@ class MicrosoftGraphService {
 
     const tokenRequest = {
       code: code,
-      scopes: ['Files.ReadWrite'],
+      scopes: ['Files.ReadWrite', 'offline_access'],
       redirectUri: this.redirectUri,
     };
 
     const response = await this.msalClient.acquireTokenByCode(tokenRequest);
+    return {
+      accessToken: response.accessToken,
+      refreshToken: response.refreshToken
+    };
+  }
+
+  async getAccessTokenFromRefresh(refreshToken) {
+    if (!this.msalClient) {
+      throw new Error('MSAL client not initialized');
+    }
+
+    const tokenRequest = {
+      refreshToken: refreshToken,
+      scopes: ['Files.ReadWrite'],
+    };
+
+    const response = await this.msalClient.acquireTokenByRefreshToken(tokenRequest);
     return response.accessToken;
   }
 
@@ -259,33 +276,43 @@ class MicrosoftGraphService {
     }
   }
 
-  async getPublicFiles(shareUrl) {
+  async getPublicFiles(shareUrl, accessToken) {
     try {
-      // If it's a webUrl, convert to share URL using root share
-      let apiUrl;
+      // Extract folder path from the webUrl
+      // Example: https://onedrive.live.com/?id=1F7F5C37636A6CA0%21s00f0d0d0ecec4aeb...&cid=1F7F5C37636A6CA0
+      // We need to get the item ID from the URL
+      
+      let itemId = null;
       if (shareUrl.includes('onedrive.live.com')) {
-        // Extract folder path from webUrl and use root share
-        const rootShareUrl = 'https://1drv.ms/f/c/1f7f5c37636a6ca0/IgDS0PDg7MrrTLZNNkcNdBmtATbWEw8cQsQrks-2sgI5TDw';
-        apiUrl = this.convertShareUrlToApiUrl(rootShareUrl);
-        // TODO: Navigate to specific folder within the share
-      } else {
-        // Convert OneDrive share URL to API endpoint
-        apiUrl = this.convertShareUrlToApiUrl(shareUrl);
-      }
-      
-      const response = await fetch(`${apiUrl}/children`, {
-        headers: {
-          'Accept': 'application/json'
+        const urlObj = new URL(shareUrl);
+        const idParam = urlObj.searchParams.get('id');
+        if (idParam) {
+          // URL decode the ID - it's the driveItem ID
+          itemId = decodeURIComponent(idParam);
         }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch files: ${response.status}`);
       }
 
-      const data = await response.json();
+      const graphClient = this.createGraphClient(accessToken);
       
-      return data.value.map(file => ({
+      let apiUrl;
+      if (itemId) {
+        apiUrl = `/me/drive/items/${itemId}/children`;
+      } else {
+        // Fallback: try to use the path from URL
+        const pathMatch = shareUrl.match(/\/Documents\/(.+?)(?:\?|$)/);
+        if (pathMatch) {
+          const folderPath = decodeURIComponent(pathMatch[1]);
+          apiUrl = `/me/drive/root:/${folderPath}:/children`;
+        } else {
+          throw new Error('Could not extract folder path from URL: ' + shareUrl);
+        }
+      }
+
+      console.log('[OneDrive] Fetching files from:', apiUrl);
+      
+      const response = await graphClient.api(apiUrl).get();
+
+      return response.value.map(file => ({
         id: file.id,
         name: file.name,
         size: file.size,
@@ -296,7 +323,7 @@ class MicrosoftGraphService {
         isPreviewable: this.isFilePreviewable(file.file?.mimeType)
       }));
     } catch (error) {
-      console.error('Error fetching public files:', error);
+      console.error('Error fetching files:', error);
       throw error;
     }
   }
