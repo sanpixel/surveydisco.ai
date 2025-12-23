@@ -49,7 +49,7 @@ const ThumbnailLoader = ({ file, className = "file-thumbnail" }) => {
           const url = await fileCacheService.loadThumbnailWithCache(
             file.id,
             async () => {
-              const response = await fetch(`/api/onedrive/public-thumbnails/${file.projectId || 'unknown'}`, {
+              const response = await fetch(`/api/onedrive/public-thumbnails/${file.jobNumber || 'unknown'}`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'

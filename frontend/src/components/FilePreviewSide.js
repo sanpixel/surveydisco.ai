@@ -236,7 +236,7 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false, onHeaderCli
             >
               <div className="file-icon">
                 <ThumbnailLoader 
-                  file={{ ...file, projectId: project.id }} 
+                  file={{ ...file, projectId: project.id, jobNumber: project.jobNumber }} 
                   className="file-thumbnail"
                 />
               </div>

@@ -327,40 +327,33 @@ class OneDriveController {
     try {
       const { jobNumber } = req.params;
       const { fileId } = req.body;
-      console.log('🖼️ [OneDrive] getPublicThumbnails called with jobNumber:', jobNumber, 'fileId:', fileId);
+      console.log('[OneDrive] getPublicThumbnails for job:', jobNumber, 'fileId:', fileId);
 
       if (!jobNumber || !fileId) {
-        console.log('❌ [OneDrive] Missing jobNumber or fileId');
         return res.status(400).json({ error: 'Job number and file ID required' });
       }
 
-      // Get project's OneDrive folder URL from database
-      console.log('🗃️ [OneDrive] Querying database for thumbnails...');
-      const result = await this.pool.query(
-        'SELECT onedrive_folder_url FROM surveydisco_projects WHERE job_number = $1',
-        [jobNumber]
+      // Get refresh token from settings table
+      const tokenResult = await this.pool.query(
+        "SELECT setting_value FROM surveydisco_settings WHERE setting_key = 'microsoft_refresh_token'"
       );
 
-      if (result.rows.length === 0) {
-        console.log('❌ [OneDrive] Project not found for thumbnails');
-        return res.status(404).json({ error: 'Project not found' });
+      if (tokenResult.rows.length === 0 || !tokenResult.rows[0].setting_value) {
+        return res.status(401).json({ 
+          error: 'Microsoft authentication required',
+          requiresAuth: true
+        });
       }
 
-      const folderUrl = result.rows[0].onedrive_folder_url;
-      
-      if (!folderUrl) {
-        console.log('⚠️ [OneDrive] OneDrive folder not initialized for thumbnails');
-        return res.status(404).json({ error: 'OneDrive folder not initialized' });
-      }
+      const refreshToken = tokenResult.rows[0].setting_value;
+      const accessToken = await this.graphService.getAccessTokenFromRefresh(refreshToken);
 
-      // Fetch thumbnail from public OneDrive share
-      console.log('☁️ [OneDrive] Fetching thumbnail from Microsoft Graph...');
-      const thumbnailUrl = await this.graphService.getPublicFileThumbnails(folderUrl, fileId);
-      console.log('✅ [OneDrive] Thumbnail retrieved:', thumbnailUrl ? 'Success' : 'No thumbnail');
+      // Fetch thumbnail using authenticated Graph client
+      const thumbnailUrl = await this.graphService.getFileThumbnail(fileId, accessToken);
       
       res.json({ thumbnailUrl });
     } catch (error) {
-      console.error('❌ [OneDrive] Error fetching thumbnail:', error);
+      console.error('[OneDrive] Error fetching thumbnail:', error.message);
       res.status(500).json({ 
         error: 'Failed to fetch thumbnail',
         details: error.message 

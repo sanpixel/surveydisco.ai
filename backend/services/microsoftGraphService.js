@@ -366,6 +366,24 @@ class MicrosoftGraphService {
     return content;
   }
 
+  async getFileThumbnail(fileId, accessToken) {
+    const graphClient = this.createGraphClient(accessToken);
+
+    try {
+      const response = await graphClient.api(`/me/drive/items/${fileId}/thumbnails`).get();
+
+      if (response.value && response.value.length > 0) {
+        const thumbnail = response.value[0];
+        return thumbnail.medium?.url || thumbnail.small?.url || thumbnail.large?.url;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error fetching thumbnail:', error.message);
+      return null;
+    }
+  }
+
   async getPublicFileThumbnails(shareUrl, fileId) {
     try {
       const apiUrl = this.convertShareUrlToApiUrl(shareUrl);

@@ -131,11 +131,30 @@ const QuickPreviewModal = ({ file, isOpen, onClose }) => {
           originalSize: { width: 0, height: 0 } // Will be set when image loads
         };
       } else if (file.mimeType.includes('pdf')) {
-        // For PDFs, we'll need to handle this differently
-        // For now, show download option
+        // For PDFs, fetch thumbnail from Microsoft Graph
+        try {
+          const thumbResponse = await fetch(`/api/onedrive/public-thumbnails/${file.jobNumber || 'unknown'}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileId: file.id })
+          });
+          const thumbData = await thumbResponse.json();
+          contentData = {
+            type: 'pdf',
+            thumbnailUrl: thumbData.thumbnailUrl || null
+          };
+        } catch (thumbErr) {
+          contentData = {
+            type: 'pdf',
+            thumbnailUrl: null
+          };
+        }
+      } else if (file.mimeType === 'text/plain') {
+        // For text files, get content as text
+        const text = await response.text();
         contentData = {
-          type: 'pdf',
-          message: 'PDF preview not yet implemented. Click download to view the file.'
+          type: 'text',
+          content: text
         };
       } else {
         // For other file types, show download option
@@ -171,7 +190,8 @@ const QuickPreviewModal = ({ file, isOpen, onClose }) => {
       'image/gif',
       'image/webp',
       'image/svg+xml',
-      'application/pdf'
+      'application/pdf',
+      'text/plain'
     ];
     
     return previewableTypes.some(type => file.mimeType === type || file.mimeType.startsWith(type));
@@ -348,14 +368,29 @@ const QuickPreviewModal = ({ file, isOpen, onClose }) => {
 
               {content.type === 'pdf' && (
                 <div className="pdf-preview">
-                  <div className="pdf-placeholder">
-                    <div className="pdf-icon">📕</div>
-                    <h4>PDF Preview</h4>
-                    <p>{content.message}</p>
-                    <button onClick={handleDownload} className="download-fallback-btn">
-                      📥 Download PDF
-                    </button>
-                  </div>
+                  {content.thumbnailUrl ? (
+                    <div className="pdf-thumbnail-container">
+                      <img 
+                        src={content.thumbnailUrl} 
+                        alt={file.name}
+                        className="pdf-thumbnail-image"
+                      />
+                    </div>
+                  ) : (
+                    <div className="pdf-placeholder">
+                      <div className="pdf-icon">📕</div>
+                      <p>No preview available</p>
+                    </div>
+                  )}
+                  <button onClick={handleDownload} className="download-fallback-btn">
+                    📥 Download PDF
+                  </button>
+                </div>
+              )}
+
+              {content.type === 'text' && (
+                <div className="text-preview">
+                  <pre className="text-content">{content.content}</pre>
                 </div>
               )}
 
