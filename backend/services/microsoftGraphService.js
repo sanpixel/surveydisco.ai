@@ -53,9 +53,28 @@ class MicrosoftGraphService {
     };
 
     const response = await this.msalClient.acquireTokenByCode(tokenRequest);
+    
+    // MSAL stores tokens in cache, get the account to retrieve refresh token
+    const accounts = await this.msalClient.getTokenCache().getAllAccounts();
+    let refreshToken = null;
+    
+    // Try to get refresh token from cache
+    const cache = this.msalClient.getTokenCache().serialize();
+    const cacheData = JSON.parse(cache);
+    
+    // Find refresh token in cache
+    if (cacheData.RefreshToken) {
+      const refreshTokenKeys = Object.keys(cacheData.RefreshToken);
+      if (refreshTokenKeys.length > 0) {
+        refreshToken = cacheData.RefreshToken[refreshTokenKeys[0]].secret;
+      }
+    }
+    
+    console.log('[OneDrive] Got access token, refresh token:', refreshToken ? 'found' : 'NOT FOUND');
+    
     return {
       accessToken: response.accessToken,
-      refreshToken: response.refreshToken
+      refreshToken: refreshToken
     };
   }
 
