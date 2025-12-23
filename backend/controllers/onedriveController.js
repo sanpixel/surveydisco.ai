@@ -152,17 +152,15 @@ class OneDriveController {
 
       if (folderExists) {
         console.log('OneDrive folder already exists, skipping template creation:', folderPath);
-        // Get existing folder URL - use root share URL
-        const rootShareUrl = 'https://1drv.ms/f/c/1f7f5c37636a6ca0/IgDS0PDg7MrrTLZNNkcNdBmtATbWEw8cQsQrks-2sgI5TDw';
-        folderUrl = `${rootShareUrl}?id=${encodeURIComponent(folderPath)}`;
+        // Get existing folder URL
+        folderUrl = await this.graphService.getFolderWebUrl(folderPath, accessToken);
       } else {
         console.log('Creating new OneDrive folder:', folderPath);
         // Create folder
         await this.graphService.createFolder(folderPath, accessToken);
         
-        // Get folder URL - use root share URL
-        const rootShareUrl = 'https://1drv.ms/f/c/1f7f5c37636a6ca0/IgDS0PDg7MrrTLZNNkcNdBmtATbWEw8cQsQrks-2sgI5TDw';
-        folderUrl = `${rootShareUrl}?id=${encodeURIComponent(folderPath)}`;
+        // Get folder URL
+        folderUrl = await this.graphService.getFolderWebUrl(folderPath, accessToken);
         
         // Copy template file to new folder
         try {
@@ -176,13 +174,10 @@ class OneDriveController {
         }
       }
 
-      // Store the share URL in the database instead of webUrl
-      const rootShareUrl = 'https://1drv.ms/f/c/1f7f5c37636a6ca0/IgDS0PDg7MrrTLZNNkcNdBmtATbWEw8cQsQrks-2sgI5TDw';
-      const projectShareUrl = `${rootShareUrl}?id=${encodeURIComponent(folderPath)}`;
-      
+      // Store the URL in the database
       await this.pool.query(
         'UPDATE surveydisco_projects SET onedrive_folder_url = $1 WHERE id = $2',
-        [projectShareUrl, projectId]
+        [folderUrl, projectId]
       );
 
       console.log('Successfully initialized OneDrive folder for project:', projectId);

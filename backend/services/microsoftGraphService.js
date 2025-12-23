@@ -261,8 +261,17 @@ class MicrosoftGraphService {
 
   async getPublicFiles(shareUrl) {
     try {
-      // Convert OneDrive share URL to API endpoint
-      const apiUrl = this.convertShareUrlToApiUrl(shareUrl);
+      // If it's a webUrl, convert to share URL using root share
+      let apiUrl;
+      if (shareUrl.includes('onedrive.live.com')) {
+        // Extract folder path from webUrl and use root share
+        const rootShareUrl = 'https://1drv.ms/f/c/1f7f5c37636a6ca0/IgDS0PDg7MrrTLZNNkcNdBmtATbWEw8cQsQrks-2sgI5TDw';
+        apiUrl = this.convertShareUrlToApiUrl(rootShareUrl);
+        // TODO: Navigate to specific folder within the share
+      } else {
+        // Convert OneDrive share URL to API endpoint
+        apiUrl = this.convertShareUrlToApiUrl(shareUrl);
+      }
       
       const response = await fetch(`${apiUrl}/children`, {
         headers: {
