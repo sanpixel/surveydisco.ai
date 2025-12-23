@@ -168,9 +168,8 @@
   font-weight: 500;
   color: #495057;
   margin-bottom: 4px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .file-metadata {

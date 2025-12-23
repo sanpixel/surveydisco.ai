@@ -347,6 +347,25 @@ class MicrosoftGraphService {
     }
   }
 
+  async getFileContent(fileId, accessToken, maxSize = 10 * 1024 * 1024) {
+    const graphClient = this.createGraphClient(accessToken);
+    
+    // First get file info to check size
+    const fileInfo = await graphClient.api(`/me/drive/items/${fileId}`).get();
+    
+    if (fileInfo.size > maxSize) {
+      throw new Error(`File too large: ${fileInfo.size} bytes (max: ${maxSize})`);
+    }
+
+    // Get file content
+    const content = await graphClient
+      .api(`/me/drive/items/${fileId}/content`)
+      .responseType('arraybuffer')
+      .get();
+
+    return content;
+  }
+
   async getPublicFileThumbnails(shareUrl, fileId) {
     try {
       const apiUrl = this.convertShareUrlToApiUrl(shareUrl);

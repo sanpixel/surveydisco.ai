@@ -371,37 +371,31 @@ class OneDriveController {
   async getPublicFileContent(req, res) {
     try {
       const { jobNumber, fileId } = req.params;
-      const maxSize = req.query.maxSize ? parseInt(req.query.maxSize) : 10 * 1024 * 1024; // 10MB default
-      console.log('📄 [OneDrive] getPublicFileContent called with jobNumber:', jobNumber, 'fileId:', fileId);
+      const maxSize = req.query.maxSize ? parseInt(req.query.maxSize) : 50 * 1024 * 1024; // 50MB default
+      console.log('[OneDrive] getPublicFileContent for job:', jobNumber, 'fileId:', fileId);
 
       if (!jobNumber || !fileId) {
-        console.log('❌ [OneDrive] Missing jobNumber or fileId for file content');
         return res.status(400).json({ error: 'Job number and file ID required' });
       }
 
-      // Get project's OneDrive folder URL from database
-      console.log('🗃️ [OneDrive] Querying database for file content...');
-      const result = await this.pool.query(
-        'SELECT onedrive_folder_url FROM surveydisco_projects WHERE job_number = $1',
-        [jobNumber]
+      // Get refresh token from settings table
+      const tokenResult = await this.pool.query(
+        "SELECT setting_value FROM surveydisco_settings WHERE setting_key = 'microsoft_refresh_token'"
       );
 
-      if (result.rows.length === 0) {
-        console.log('❌ [OneDrive] Project not found for file content');
-        return res.status(404).json({ error: 'Project not found' });
+      if (tokenResult.rows.length === 0 || !tokenResult.rows[0].setting_value) {
+        return res.status(401).json({ 
+          error: 'Microsoft authentication required',
+          requiresAuth: true
+        });
       }
 
-      const folderUrl = result.rows[0].onedrive_folder_url;
-      
-      if (!folderUrl) {
-        console.log('⚠️ [OneDrive] OneDrive folder not initialized for file content');
-        return res.status(404).json({ error: 'OneDrive folder not initialized' });
-      }
+      const refreshToken = tokenResult.rows[0].setting_value;
+      const accessToken = await this.graphService.getAccessTokenFromRefresh(refreshToken);
 
-      // Fetch file content from public OneDrive share
-      console.log('☁️ [OneDrive] Fetching file content from Microsoft Graph...');
-      const content = await this.graphService.getPublicFileContent(folderUrl, fileId, maxSize);
-      console.log('✅ [OneDrive] File content retrieved, size:', content.byteLength, 'bytes');
+      // Fetch file content using authenticated Graph client
+      const content = await this.graphService.getFileContent(fileId, accessToken, maxSize);
+      console.log('[OneDrive] File content retrieved, size:', content.byteLength, 'bytes');
       
       // Set appropriate headers for file download/preview
       res.set({
@@ -411,7 +405,7 @@ class OneDriveController {
       
       res.send(Buffer.from(content));
     } catch (error) {
-      console.error('❌ [OneDrive] Error fetching file content:', error);
+      console.error('[OneDrive] Error fetching file content:', error.message);
       
       if (error.message.includes('File too large')) {
         return res.status(413).json({ error: error.message });

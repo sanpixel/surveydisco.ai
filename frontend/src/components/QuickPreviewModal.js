@@ -315,6 +315,14 @@ const QuickPreviewModal = ({ file, isOpen, onClose }) => {
               <div className="error-icon">⚠️</div>
               <h4>Preview Error</h4>
               <p>{error}</p>
+              {file?.name?.toLowerCase().endsWith('.dwg') && (
+                <p className="external-viewer-hint">
+                  You may be able to open this file at{' '}
+                  <a href="https://www.dwgsee.com/online_viewer.html" target="_blank" rel="noopener noreferrer">
+                    dwgsee.com
+                  </a>
+                </p>
+              )}
               <button onClick={handleDownload} className="download-fallback-btn">
                 📥 Download File
               </button>
