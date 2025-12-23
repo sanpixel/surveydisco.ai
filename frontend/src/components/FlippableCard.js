@@ -68,34 +68,15 @@ const FlippableCard = ({ children, project, onFlip, onFileSelect }) => {
     <div className={`flippable-card-container ${isFlipped ? 'flipped' : ''} ${isAnimating ? 'animating' : ''}`}>
       <div className="flippable-card">
         <div className="card-front">
-          {children}
-          <div className="flip-button-container">
-            <button 
-              onClick={handleFlip}
-              className="btn-flip"
-              disabled={isAnimating}
-              title="Flip to see files"
-            >
-              🔄 Flip
-            </button>
-          </div>
+          {typeof children === 'function' ? children({ onFlip: handleFlip }) : children}
         </div>
         <div className="card-back">
           <FilePreviewSide 
             project={project} 
             onFileSelect={onFileSelect}
             isVisible={isFlipped}
+            onHeaderClick={handleFlip}
           />
-          <div className="flip-back-button-container">
-            <button 
-              onClick={handleFlip}
-              className="btn-flip-back"
-              disabled={isAnimating}
-              title="Flip back to project info"
-            >
-              ↩️ Back
-            </button>
-          </div>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ import errorHandlingService from '../services/errorHandlingService';
 import ThumbnailLoader from './ThumbnailLoader';
 import QuickPreviewModal from './QuickPreviewModal';
 
-const FilePreviewSide = ({ project, onFileSelect, isVisible = false }) => {
+const FilePreviewSide = ({ project, onFileSelect, isVisible = false, onHeaderClick }) => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -20,8 +20,6 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false }) => {
       loadFiles();
     } else if (isVisible && !project?.onedrivefolderurl) {
       console.log('⚠️ [FilePreview] Component visible but no OneDrive folder URL for project:', project.jobNumber);
-    } else if (!isVisible) {
-      console.log('👁️‍🗨️ [FilePreview] Component not visible for project:', project.jobNumber);
     }
   }, [isVisible, project?.onedrivefolderurl, hasLoaded]);
 
@@ -151,8 +149,8 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false }) => {
   if (!project?.onedrivefolderurl) {
     return (
       <div className="file-preview-side">
-        <div className="file-preview-header">
-          <h3>Project Files</h3>
+        <div className="file-preview-header" onClick={onHeaderClick}>
+          <h3>#{project?.jobNumber} - Live Project Files</h3>
         </div>
         <div className="file-preview-content">
           <div className="folder-not-initialized">
@@ -168,8 +166,8 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false }) => {
   if (loading) {
     return (
       <div className="file-preview-side">
-        <div className="file-preview-header">
-          <h3>Project Files</h3>
+        <div className="file-preview-header" onClick={onHeaderClick}>
+          <h3>#{project?.jobNumber} - Live Project Files</h3>
         </div>
         <div className="file-preview-content">
           <div className="files-loading">
@@ -184,8 +182,8 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false }) => {
   if (error) {
     return (
       <div className="file-preview-side">
-        <div className="file-preview-header">
-          <h3>Project Files</h3>
+        <div className="file-preview-header" onClick={onHeaderClick}>
+          <h3>#{project?.jobNumber} - Live Project Files</h3>
         </div>
         <div className="file-preview-content">
           <div className="files-error">
@@ -207,8 +205,8 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false }) => {
   if (files.length === 0) {
     return (
       <div className="file-preview-side">
-        <div className="file-preview-header">
-          <h3>Project Files</h3>
+        <div className="file-preview-header" onClick={onHeaderClick}>
+          <h3>#{project?.jobNumber} - Live Project Files</h3>
         </div>
         <div className="file-preview-content">
           <div className="no-files">
@@ -223,8 +221,8 @@ const FilePreviewSide = ({ project, onFileSelect, isVisible = false }) => {
 
   return (
     <div className="file-preview-side">
-      <div className="file-preview-header">
-        <h3>Project Files</h3>
+      <div className="file-preview-header" onClick={onHeaderClick}>
+        <h3>#{project?.jobNumber} - Live Project Files</h3>
         <div className="file-count">{files.length} file{files.length !== 1 ? 's' : ''}</div>
       </div>
       <div className="file-preview-content">

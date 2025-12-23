@@ -246,9 +246,10 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
             onFlip={handleCardFlip}
             onFileSelect={handleFileSelect}
           >
+            {({ onFlip: flipCard }) => (
             <div className="project-card">
               <div className="card-header">
-                <div className="job-number">#{project.jobNumber}</div>
+                <div className="job-number" onClick={flipCard}>#{project.jobNumber}</div>
                 <div className="travel-info" 
                      onClick={() => refreshTravelInfo(project)}
                      title="Click to refresh travel time with current traffic">
@@ -394,6 +395,7 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                 )}
               </div>
             </div>
+            )}
           </FlippableCard>
         ))}
       </div>
