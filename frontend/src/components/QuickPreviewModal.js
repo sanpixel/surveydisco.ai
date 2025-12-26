@@ -2,6 +2,65 @@ import React, { useState, useEffect, useRef } from 'react';
 import './QuickPreviewModal.css';
 import fileCacheService from '../services/fileCacheService';
 import errorHandlingService from '../services/errorHandlingService';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Set worker source
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+const PdfViewer = ({ data, onPageChange, currentPage }) => {
+  const canvasRef = useRef(null);
+  const [pdfDoc, setPdfDoc] = useState(null);
+  const [rendering, setRendering] = useState(false);
+
+  useEffect(() => {
+    const loadPdf = async () => {
+      try {
+        const pdf = await pdfjsLib.getDocument({ data }).promise;
+        setPdfDoc(pdf);
+        onPageChange(1, pdf.numPages);
+      } catch (err) {
+        console.error('Error loading PDF:', err);
+      }
+    };
+    if (data) loadPdf();
+  }, [data]);
+
+  useEffect(() => {
+    const renderPage = async () => {
+      if (!pdfDoc || !canvasRef.current || rendering) return;
+      setRendering(true);
+      try {
+        const page = await pdfDoc.getPage(currentPage);
+        const canvas = canvasRef.current;
+        const context = canvas.getContext('2d');
+        
+        // Scale to fit container width while maintaining aspect ratio
+        const containerWidth = canvas.parentElement.clientWidth - 40;
+        const viewport = page.getViewport({ scale: 1 });
+        const scale = Math.min(containerWidth / viewport.width, 2);
+        const scaledViewport = page.getViewport({ scale });
+        
+        canvas.width = scaledViewport.width;
+        canvas.height = scaledViewport.height;
+        
+        await page.render({
+          canvasContext: context,
+          viewport: scaledViewport
+        }).promise;
+      } catch (err) {
+        console.error('Error rendering page:', err);
+      }
+      setRendering(false);
+    };
+    renderPage();
+  }, [pdfDoc, currentPage]);
+
+  return (
+    <div className="pdf-preview">
+      <canvas ref={canvasRef} />
+    </div>
+  );
+};
 
 const QuickPreviewModal = ({ file, isOpen, onClose }) => {
   const [content, setContent] = useState(null);
@@ -131,24 +190,13 @@ const QuickPreviewModal = ({ file, isOpen, onClose }) => {
           originalSize: { width: 0, height: 0 } // Will be set when image loads
         };
       } else if (file.mimeType.includes('pdf')) {
-        // For PDFs, fetch thumbnail from Microsoft Graph
-        try {
-          const thumbResponse = await fetch(`/api/onedrive/public-thumbnails/${file.jobNumber || 'unknown'}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileId: file.id })
-          });
-          const thumbData = await thumbResponse.json();
-          contentData = {
-            type: 'pdf',
-            thumbnailUrl: thumbData.thumbnailUrl || null
-          };
-        } catch (thumbErr) {
-          contentData = {
-            type: 'pdf',
-            thumbnailUrl: null
-          };
-        }
+        // For PDFs, get the blob and store for PDF.js rendering
+        const blob = await response.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        contentData = {
+          type: 'pdf',
+          data: arrayBuffer
+        };
       } else if (file.mimeType === 'text/plain') {
         // For text files, get content as text
         const text = await response.text();
@@ -344,7 +392,7 @@ const QuickPreviewModal = ({ file, isOpen, onClose }) => {
                 </p>
               )}
               <button onClick={handleDownload} className="download-fallback-btn">
-                📥 Download File
+                ⬇ Download File
               </button>
             </div>
           )}
@@ -367,25 +415,14 @@ const QuickPreviewModal = ({ file, isOpen, onClose }) => {
               )}
 
               {content.type === 'pdf' && (
-                <div className="pdf-preview">
-                  {content.thumbnailUrl ? (
-                    <div className="pdf-thumbnail-container">
-                      <img 
-                        src={content.thumbnailUrl} 
-                        alt={file.name}
-                        className="pdf-thumbnail-image"
-                      />
-                    </div>
-                  ) : (
-                    <div className="pdf-placeholder">
-                      <div className="pdf-icon">📕</div>
-                      <p>No preview available</p>
-                    </div>
-                  )}
-                  <button onClick={handleDownload} className="download-fallback-btn">
-                    📥 Download PDF
-                  </button>
-                </div>
+                <PdfViewer 
+                  data={content.data} 
+                  onPageChange={(page, total) => {
+                    setCurrentPage(page);
+                    setTotalPages(total);
+                  }}
+                  currentPage={currentPage}
+                />
               )}
 
               {content.type === 'text' && (
@@ -400,7 +437,7 @@ const QuickPreviewModal = ({ file, isOpen, onClose }) => {
                   <h4>Preview Not Available</h4>
                   <p>{content.message}</p>
                   <button onClick={handleDownload} className="download-fallback-btn">
-                    📥 Download File
+                    ⬇ Download File
                   </button>
                 </div>
               )}

@@ -9,7 +9,7 @@ function AppContent() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [webDevText, setWebDevText] = useState('Each field in Job Cards below are editable. TODO card holds enhancement ideas.');
-  const { toggleAdmin } = useAdmin();
+  const { isAdmin, toggleAdmin } = useAdmin();
 
   useEffect(() => {
     loadProjects();
@@ -125,7 +125,7 @@ function AppContent() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1 onClick={toggleAdmin}>SurveyDisco.ai</h1>
+        <h1 onClick={toggleAdmin} style={isAdmin ? { color: 'red' } : {}}>SurveyDisco.ai</h1>
         <p>Project Management</p>
         <div 
           contentEditable 
