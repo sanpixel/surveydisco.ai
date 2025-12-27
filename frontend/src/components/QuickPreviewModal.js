@@ -2,11 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import './QuickPreviewModal.css';
 import fileCacheService from '../services/fileCacheService';
 import errorHandlingService from '../services/errorHandlingService';
-import * as pdfjsLib from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf';
 
-// Set worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+// Set worker source using URL constructor for webpack compatibility
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/legacy/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 const PdfViewer = ({ data, onPageChange, currentPage }) => {
   const canvasRef = useRef(null);
