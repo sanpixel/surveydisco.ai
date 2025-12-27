@@ -3,9 +3,10 @@ import './QuickPreviewModal.css';
 import fileCacheService from '../services/fileCacheService';
 import errorHandlingService from '../services/errorHandlingService';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs';
 
 // Set worker source
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const PdfViewer = ({ data, onPageChange, currentPage }) => {
   const canvasRef = useRef(null);
