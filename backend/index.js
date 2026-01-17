@@ -8,6 +8,8 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const { createClient } = require('@supabase/supabase-js');
 const { Pool } = require('pg');
 const OpenAI = require('openai');
+const { Resend } = require('resend');
+const puppeteer = require('puppeteer');
 
 // Initialize Supabase client with anon key BUT MAYBE IT NEEDS SR Key?
 const supabase = createClient(
@@ -30,6 +32,9 @@ const pool = new Pool({
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+// Initialize Resend client
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Initialize database table
 async function initDatabase() {
@@ -1160,6 +1165,65 @@ app.delete('/api/todos/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting todo:', error);
     res.status(500).json({ error: 'Failed to delete todo' });
+  }
+});
+
+// Send email for projects missing prepared_for field
+app.post('/api/send-missing-data-emails', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT * FROM surveydisco_projects 
+      WHERE prepared_for IS NULL 
+      AND EXTRACT(MONTH FROM created) = EXTRACT(MONTH FROM NOW())
+      AND EXTRACT(YEAR FROM created) = EXTRACT(YEAR FROM NOW())
+      ORDER BY created DESC
+    `);
+    
+    if (result.rows.length === 0) {
+      return res.json({ message: 'No projects found with missing prepared_for field for current month' });
+    }
+    
+    // Take screenshot of the cards
+    const browser = await puppeteer.launch({ 
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    const page = await browser.newPage();
+    
+    // Navigate to the frontend with the missing projects
+    const frontendUrl = process.env.CLOUD_RUN_URL || 'http://localhost:3000';
+    await page.goto(frontendUrl);
+    await page.waitForSelector('.project-card', { timeout: 10000 });
+    
+    // Take screenshot
+    const screenshot = await page.screenshot({ 
+      type: 'png',
+      fullPage: true
+    });
+    
+    await browser.close();
+    
+    let projectList = result.rows.map(project => 
+      `Job #${project.job_number} - ${project.client || 'No Client'} - ${project.address || 'No Address'}`
+    ).join('<br>');
+    
+    await resend.emails.send({
+      from: 'noreply@surveydisco.ai',
+      to: ['sanjay149@gmail.com', 'sawhneygl@gmail.com'],
+      subject: 'Projects Missing Prepared For Field',
+      html: `<p>The following ${result.rows.length} projects from this month are missing the "Prepared For" field:</p><br>${projectList}`,
+      attachments: [
+        {
+          filename: 'project-cards.png',
+          content: screenshot
+        }
+      ]
+    });
+    
+    res.json({ message: `Email sent successfully for ${result.rows.length} projects with screenshot` });
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({ error: 'Failed to send email' });
   }
 });
 

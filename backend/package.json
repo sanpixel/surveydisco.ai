@@ -25,7 +25,9 @@
     "helmet": "^8.1.0",
     "morgan": "^1.10.1",
     "openai": "^5.20.2",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "puppeteer": "^23.9.0",
+    "resend": "^4.0.1"
   },
   "devDependencies": {
     "fast-check": "^4.5.2",

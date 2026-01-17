@@ -122,6 +122,25 @@ function AppContent() {
     }
   };
 
+  const sendMissingDataEmail = async () => {
+    try {
+      const response = await fetch('/api/send-missing-data-emails', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        alert(result.message);
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to send email');
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert('Failed to send email');
+    }
+  };
+
   return (
     <div className="App">
       <header className="App-header">
@@ -163,6 +182,22 @@ function AppContent() {
               onDelete={deleteProject}
             />
             <TodoCard />
+            <div style={{ textAlign: 'center', margin: '20px 0' }}>
+              <button 
+                onClick={sendMissingDataEmail}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Send Missing Data Email
+              </button>
+            </div>
           </>
         )}
       </main>
