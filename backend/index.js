@@ -1173,7 +1173,7 @@ app.post('/api/send-missing-data-emails', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT * FROM surveydisco_projects 
-      WHERE prepared_for IS NULL 
+      WHERE (prepared_for IS NULL OR prepared_for = '')
       AND EXTRACT(MONTH FROM created) = EXTRACT(MONTH FROM NOW())
       AND EXTRACT(YEAR FROM created) = EXTRACT(YEAR FROM NOW())
       ORDER BY created DESC
