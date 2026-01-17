@@ -1188,7 +1188,7 @@ app.post('/api/send-missing-data-emails', async (req, res) => {
     ).join('<br>');
     
     await resend.emails.send({
-      from: 'noreply@surveydisco.ai',
+      from: 'onboarding@resend.dev',
       to: ['sanjay149@gmail.com', 'sawhneygl@gmail.com'],
       subject: 'Projects Missing Prepared For Field',
       html: `<p>The following ${result.rows.length} projects from this month are missing the "Prepared For" field:</p><br>${projectList}<br><br><p><a href="https://gus.clocknumbers.com" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Update Projects</a></p>`
