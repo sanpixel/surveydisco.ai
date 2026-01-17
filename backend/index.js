@@ -1183,26 +1183,6 @@ app.post('/api/send-missing-data-emails', async (req, res) => {
       return res.json({ message: 'No projects found with missing prepared_for field for current month' });
     }
     
-    // Take screenshot of the cards
-    const browser = await puppeteer.launch({ 
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    const page = await browser.newPage();
-    
-    // Navigate to the frontend with the missing projects
-    const frontendUrl = process.env.CLOUD_RUN_URL || 'http://localhost:3000';
-    await page.goto(frontendUrl);
-    await page.waitForSelector('.project-card', { timeout: 10000 });
-    
-    // Take screenshot
-    const screenshot = await page.screenshot({ 
-      type: 'png',
-      fullPage: true
-    });
-    
-    await browser.close();
-    
     let projectList = result.rows.map(project => 
       `Job #${project.job_number} - ${project.client || 'No Client'} - ${project.address || 'No Address'}`
     ).join('<br>');
@@ -1211,16 +1191,10 @@ app.post('/api/send-missing-data-emails', async (req, res) => {
       from: 'noreply@surveydisco.ai',
       to: ['sanjay149@gmail.com', 'sawhneygl@gmail.com'],
       subject: 'Projects Missing Prepared For Field',
-      html: `<p>The following ${result.rows.length} projects from this month are missing the "Prepared For" field:</p><br>${projectList}<br><br><p><a href="https://gus.clocknumbers.com" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Update Projects</a></p>`,
-      attachments: [
-        {
-          filename: 'project-cards.png',
-          content: screenshot
-        }
-      ]
+      html: `<p>The following ${result.rows.length} projects from this month are missing the "Prepared For" field:</p><br>${projectList}<br><br><p><a href="https://gus.clocknumbers.com" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Update Projects</a></p>`
     });
     
-    res.json({ message: `Email sent successfully for ${result.rows.length} projects with screenshot` });
+    res.json({ message: `Email sent successfully for ${result.rows.length} projects` });
   } catch (error) {
     console.error('Error sending email:', error);
     res.status(500).json({ error: 'Failed to send email' });
