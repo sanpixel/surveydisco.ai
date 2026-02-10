@@ -10,6 +10,26 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
   const [password, setPassword] = useState('');
   const [expandedCards, setExpandedCards] = useState(new Set());
   const [flippedCards, setFlippedCards] = useState(new Set());
+  const [showStatusDropdown, setShowStatusDropdown] = useState(null);
+
+  const statusOptions = ['New', 'Active', 'Pending', 'Review', 'Complete', 'Archived'];
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'New': '#007bff',
+      'Active': '#28a745',
+      'Pending': '#ffc107',
+      'Review': '#17a2b8',
+      'Complete': '#6f42c1',
+      'Archived': '#6c757d'
+    };
+    return colors[status] || '#007bff';
+  };
+
+  const handleStatusChange = (projectId, newStatus) => {
+    onUpdate(projectId, 'status', newStatus);
+    setShowStatusDropdown(null);
+  };
 
   const startEdit = (projectId, field, currentValue) => {
     console.log('startEdit called:', { projectId, field, currentValue });
@@ -247,7 +267,7 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
             onFileSelect={handleFileSelect}
           >
             {({ onFlip: flipCard }) => (
-            <div className="project-card">
+            <div className="project-card" style={{ borderLeftColor: getStatusColor(project.status), borderLeftWidth: '4px' }}>
               <div className="card-header">
                 <div className="job-number" onClick={flipCard}>#{project.jobNumber}</div>
                 <div className="travel-info" 
@@ -256,7 +276,27 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                   {project.travelTime && <span className="travel-time">🕒 {project.travelTime}</span>}
                   {project.travelDistance && <span className="travel-distance">📏 {project.travelDistance}</span>}
                 </div>
-                <div className="status-badge">{project.status}</div>
+                <div 
+                  className="status-badge" 
+                  style={{ backgroundColor: getStatusColor(project.status) }}
+                  onClick={() => setShowStatusDropdown(showStatusDropdown === project.id ? null : project.id)}
+                  title="Click to change status"
+                >
+                  {project.status}
+                  {showStatusDropdown === project.id && (
+                    <div className="status-dropdown" onClick={(e) => e.stopPropagation()}>
+                      {statusOptions.map(option => (
+                        <div
+                          key={option}
+                          className="status-option"
+                          onClick={() => handleStatusChange(project.id, option)}
+                        >
+                          {option}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {editingCell?.projectId === project.id && editingCell?.field === 'tags' ? (
                   <input
                     type="text"

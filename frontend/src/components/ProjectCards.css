@@ -65,6 +65,46 @@
   border-radius: 12px;
   font-size: 11px;
   font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  transition: opacity 0.2s ease;
+}
+
+.status-badge:hover {
+  opacity: 0.9;
+}
+
+.status-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  z-index: 1000;
+  min-width: 100px;
+}
+
+.status-option {
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #495057;
+  font-size: 12px;
+  transition: background-color 0.2s ease;
+}
+
+.status-option:hover {
+  background-color: #f8f9fa;
+}
+
+.status-option:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.status-option:last-child {
+  border-radius: 0 0 4px 4px;
 }
 
 .card-body {
