@@ -27,7 +27,8 @@
     "openai": "^5.20.2",
     "pg": "^8.16.3",
     "puppeteer": "^23.9.0",
-    "resend": "^4.0.1"
+    "resend": "^4.0.1",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "fast-check": "^4.5.2",
