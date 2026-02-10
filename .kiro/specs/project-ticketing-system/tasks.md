@@ -102,25 +102,25 @@ This plan implements a lightweight ticketing/updates system for project cards. T
 - [ ] 5. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Implement ticket display formatting
-  - [ ] 6.1 Create ticket rendering function
+- [x] 6. Implement ticket display formatting
+  - [x] 6.1 Create ticket rendering function
     - Write function to format ticket as string with timestamp, author, and content
     - Format timestamp in human-readable format
     - Handle long content with truncation or wrapping
     - _Requirements: 2.2_
   
-  - [ ] 6.2 Write property test for display includes required fields
+  - [x] 6.2 Write property test for display includes required fields
     - **Property 5: Ticket display includes required fields**
     - **Validates: Requirements 2.2, 6.4**
   
-  - [ ] 6.3 Write unit tests for rendering
+  - [x] 6.3 Write unit tests for rendering
     - Test rendering with various content lengths
     - Test timestamp formatting
     - Test author display
     - _Requirements: 2.2_
 
-- [ ] 7. Implement UI components - Option 1 (More Button approach)
-  - [ ] 7.1 Create ProjectUpdatesSection component
+- [x] 7. Implement UI components - Option 1 (More Button approach)
+  - [x] 7.1 Create ProjectUpdatesSection component
     - Create expandable section component
     - Add input field for new ticket content
     - Add submit button
@@ -128,13 +128,13 @@ This plan implements a lightweight ticketing/updates system for project cards. T
     - Wire up onCreateTicket handler to call TicketManager.createTicket()
     - _Requirements: 4.1, 6.1_
   
-  - [ ] 7.2 Integrate ProjectUpdatesSection with More Button
+  - [x] 7.2 Integrate ProjectUpdatesSection with More Button
     - Add ProjectUpdatesSection to More Button expandable area
     - Ensure surveying details section remains intact
     - Maintain card size constraints (collapsed state unchanged)
     - _Requirements: 3.1, 3.2, 4.1, 4.3_
   
-  - [ ] 7.3 Write unit test for UI structure
+  - [x] 7.3 Write unit test for UI structure
     - Test that More Button expansion shows Project Updates section
     - Test that surveying details remain visible
     - _Requirements: 4.1, 4.3_
@@ -159,21 +159,21 @@ This plan implements a lightweight ticketing/updates system for project cards. T
     - _Requirements: 2.4_
 
 - [ ] 9. Implement application initialization
-  - [ ] 9.1 Create ticket loading on app startup
+  - [x] 9.1 Create ticket loading on app startup
     - Call TicketStorage.findAll() on application load
     - Populate ticket cache or state management
     - Handle storage errors gracefully
     - _Requirements: 5.2_
   
-  - [ ] 9.2 Write property test for application load retrieves all tickets
+  - [x] 9.2 Write property test for application load retrieves all tickets
     - **Property 7: Application load retrieves all tickets**
     - **Validates: Requirements 5.2**
   
-  - [ ] 9.3 Write integration test for full ticket lifecycle
+  - [x] 9.3 Write integration test for full ticket lifecycle
     - Test creating ticket, reloading app, and verifying ticket persists
     - _Requirements: 1.5, 5.2_
 
-- [ ] 10. Final checkpoint - Ensure all tests pass
+- [x] 10. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

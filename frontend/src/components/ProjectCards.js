@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './ProjectCards.css';
 import { openOneDriveFolder } from '../services/onedriveService';
 import FlippableCard from './FlippableCard';
+import ProjectTickets from './ProjectTickets';
 
 const ProjectCards = ({ projects, onUpdate, onDelete }) => {
   const [editingCell, setEditingCell] = useState(null);
@@ -349,6 +350,8 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                   {renderField(project, 'deedPage', project.deedPage, 'Deed Page')}
                   {renderField(project, 'platBook', project.platBook, 'Plat Book')}
                   {renderField(project, 'platPage', project.platPage, 'Plat Page')}
+                  
+                  <ProjectTickets projectId={project.id} />
                 </div>
               )}
 

@@ -1201,6 +1201,59 @@ app.post('/api/send-missing-data-emails', async (req, res) => {
   }
 });
 
+// Ticket API endpoints
+const TicketStorage = require('./storage/TicketStorage');
+const TicketManager = require('./managers/TicketManager');
+
+const ticketStorage = new TicketStorage(pool);
+const ticketManager = new TicketManager(ticketStorage);
+
+// Create a new ticket
+app.post('/api/projects/:id/tickets', async (req, res) => {
+  const { id } = req.params;
+  const { content } = req.body;
+
+  try {
+    const result = await ticketManager.createTicket(id, content);
+    
+    if (result.success) {
+      res.json(result.ticket);
+    } else {
+      res.status(400).json({ error: result.error.message });
+    }
+  } catch (error) {
+    console.error('Error creating ticket:', error);
+    res.status(500).json({ error: 'Failed to create ticket' });
+  }
+});
+
+// Get all tickets for a project
+app.get('/api/projects/:id/tickets', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const tickets = await ticketManager.getTickets(id);
+    res.json(tickets);
+  } catch (error) {
+    console.error('Error fetching tickets:', error);
+    res.status(500).json({ error: 'Failed to fetch tickets' });
+  }
+});
+
+// Get recent tickets for a project
+app.get('/api/projects/:id/tickets/recent', async (req, res) => {
+  const { id } = req.params;
+  const count = parseInt(req.query.count) || 3;
+
+  try {
+    const tickets = await ticketManager.getRecentTickets(id, count);
+    res.json(tickets);
+  } catch (error) {
+    console.error('Error fetching recent tickets:', error);
+    res.status(500).json({ error: 'Failed to fetch recent tickets' });
+  }
+});
+
 // Serve React static files
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
