@@ -263,8 +263,10 @@
 .card-additional {
   background-color: #f8f9fa;
   border-top: 1px solid #dee2e6;
-  padding: 12px;
+  padding: 16px;
   margin-top: 8px;
+  margin-left: -16px;
+  margin-right: -16px;
 }
 
 .additional-header {

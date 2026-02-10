@@ -1,15 +1,12 @@
 .project-tickets {
   margin-top: 12px;
-  padding: 12px;
-  background: #f8f9fa;
+  padding: 0;
+  background: transparent;
   border-radius: 4px;
 }
 
 .tickets-header {
-  font-weight: 600;
-  font-size: 14px;
-  margin-bottom: 12px;
-  color: #333;
+  display: none;
 }
 
 .ticket-form {
@@ -81,6 +78,36 @@
   border-radius: 4px;
   margin-bottom: 8px;
   border-left: 3px solid #007bff;
+  position: relative;
+}
+
+.ticket-item:hover .ticket-remove {
+  opacity: 1;
+}
+
+.ticket-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.ticket-remove:hover {
+  background: #c82333;
 }
 
 .ticket-meta {

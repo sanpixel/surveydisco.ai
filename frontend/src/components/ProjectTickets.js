@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './ProjectTickets.css';
+import { useAdmin } from '../contexts/AdminContext';
 
 const ProjectTickets = ({ projectId }) => {
   const [tickets, setTickets] = useState([]);
   const [newTicketContent, setNewTicketContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { isAdmin } = useAdmin();
 
   useEffect(() => {
     loadTickets();
@@ -52,6 +54,10 @@ const ProjectTickets = ({ projectId }) => {
     }
   };
 
+  const handleRemove = (ticketId) => {
+    setTickets(tickets.filter(t => t.id !== ticketId));
+  };
+
   const formatTimestamp = (timestamp) => {
     return new Date(timestamp).toLocaleString('en-US', {
       month: 'short',
@@ -90,6 +96,15 @@ const ProjectTickets = ({ projectId }) => {
         ) : (
           tickets.map((ticket) => (
             <div key={ticket.id} className="ticket-item">
+              {isAdmin && (
+                <button 
+                  className="ticket-remove"
+                  onClick={() => handleRemove(ticket.id)}
+                  title="Remove ticket"
+                >
+                  ×
+                </button>
+              )}
               <div className="ticket-meta">
                 <span className="ticket-author">{ticket.author}</span>
                 <span className="ticket-timestamp">{formatTimestamp(ticket.timestamp)}</span>
