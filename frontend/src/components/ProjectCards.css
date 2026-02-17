@@ -371,3 +371,34 @@
     padding: 12px;
   }
 }
+
+.tag-filter-bar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.tag-filter-chip {
+  background-color: #6c757d;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tag-filter-chip:hover {
+  background-color: #5a6268;
+  transform: translateY(-1px);
+}
+
+.tag-filter-chip.selected {
+  background-color: #007bff;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}

@@ -12,6 +12,7 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
   const [expandedCards, setExpandedCards] = useState(new Set());
   const [flippedCards, setFlippedCards] = useState(new Set());
   const [showStatusDropdown, setShowStatusDropdown] = useState(null);
+  const [selectedTag, setSelectedTag] = useState(null);
 
   const statusOptions = ['New', 'Active', 'Pending', 'Review', 'Complete', 'Archived'];
 
@@ -213,6 +214,16 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
     });
   };
 
+  const uniqueTags = [...new Set(projects.map(p => p.tags).filter(Boolean))];
+
+  const sortedProjects = selectedTag
+    ? [...projects].sort((a, b) => {
+        if (a.tags === selectedTag && b.tags !== selectedTag) return -1;
+        if (a.tags !== selectedTag && b.tags === selectedTag) return 1;
+        return 0;
+      })
+    : projects;
+
   const renderField = (project, field, value, label, isReadOnly = false) => {
     const isEditing = editingCell?.projectId === project.id && editingCell?.field === field;
 
@@ -259,8 +270,21 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
 
   return (
     <div className="cards-container">
+      {uniqueTags.length > 0 && (
+        <div className="tag-filter-bar">
+          {uniqueTags.map(tag => (
+            <div
+              key={tag}
+              className={`tag-filter-chip ${selectedTag === tag ? 'selected' : ''}`}
+              onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+            >
+              {tag}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="cards-grid">
-        {projects.map((project) => (
+        {sortedProjects.map((project) => (
           <FlippableCard 
             key={project.id} 
             project={project}
