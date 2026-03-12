@@ -13,6 +13,7 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
   const [flippedCards, setFlippedCards] = useState(new Set());
   const [showStatusDropdown, setShowStatusDropdown] = useState(null);
   const [selectedTag, setSelectedTag] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const statusOptions = ['New', 'Active', 'Pending', 'Review', 'Complete', 'Archived'];
 
@@ -216,13 +217,57 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
 
   const uniqueTags = [...new Set(projects.map(p => p.tags).filter(Boolean))];
 
-  const sortedProjects = selectedTag
-    ? [...projects].sort((a, b) => {
-        if (a.tags === selectedTag && b.tags !== selectedTag) return -1;
-        if (a.tags !== selectedTag && b.tags === selectedTag) return 1;
-        return 0;
-      })
-    : projects;
+  const matchesSearch = (project) => {
+    if (!searchQuery.trim()) return false;
+    
+    const query = searchQuery.toLowerCase();
+    const searchableFields = [
+      project.address,
+      project.geoAddress,
+      project.client,
+      project.jobNumber,
+      project.parcel,
+      project.email,
+      project.phone,
+      project.preparedFor,
+      project.serviceType,
+      project.costEstimate,
+      project.notes,
+      project.landLot,
+      project.district,
+      project.county,
+      project.deedBook,
+      project.deedPage,
+      project.platBook,
+      project.platPage
+    ];
+    
+    return searchableFields.some(field => 
+      field && field.toString().toLowerCase().includes(query)
+    );
+  };
+
+  let sortedProjects = projects;
+
+  // Apply search sorting
+  if (searchQuery.trim()) {
+    sortedProjects = [...projects].sort((a, b) => {
+      const aMatches = matchesSearch(a);
+      const bMatches = matchesSearch(b);
+      if (aMatches && !bMatches) return -1;
+      if (!aMatches && bMatches) return 1;
+      return 0;
+    });
+  }
+
+  // Apply tag sorting
+  if (selectedTag) {
+    sortedProjects = [...sortedProjects].sort((a, b) => {
+      if (a.tags === selectedTag && b.tags !== selectedTag) return -1;
+      if (a.tags !== selectedTag && b.tags === selectedTag) return 1;
+      return 0;
+    });
+  }
 
   const renderField = (project, field, value, label, isReadOnly = false) => {
     const isEditing = editingCell?.projectId === project.id && editingCell?.field === field;
@@ -270,6 +315,23 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
 
   return (
     <div className="cards-container">
+      <div className="search-bar">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search projects..."
+          className="search-input"
+        />
+        {searchQuery && (
+          <button 
+            onClick={() => setSearchQuery('')}
+            className="search-clear"
+          >
+            ✕
+          </button>
+        )}
+      </div>
       {uniqueTags.length > 0 && (
         <div className="tag-filter-bar">
           {uniqueTags.map(tag => (
