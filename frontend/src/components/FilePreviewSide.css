@@ -161,7 +161,9 @@
 .file-details {
   flex: 1;
   min-width: 0;
-  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
 }
 
 .file-name {
