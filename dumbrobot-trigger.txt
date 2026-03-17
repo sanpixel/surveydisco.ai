@@ -1,1 +1,1 @@
-Trigger deployment with Microsoft secrets configured
+Trigger deployment with Microsoft secrets configured - updated
