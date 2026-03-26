@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ProjectCards.css';
 import { openOneDriveFolder } from '../services/onedriveService';
 import FlippableCard from './FlippableCard';
@@ -14,8 +14,41 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
   const [showStatusDropdown, setShowStatusDropdown] = useState(null);
   const [selectedTag, setSelectedTag] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [latestTickets, setLatestTickets] = useState({});
 
   const statusOptions = ['New', 'Active', 'Pending', 'Review', 'Complete', 'Archived'];
+
+  useEffect(() => {
+    // Load latest ticket for each project
+    projects.forEach(project => {
+      loadLatestTicket(project.id);
+    });
+  }, [projects]);
+
+  const loadLatestTicket = async (projectId) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/tickets/recent?count=1`);
+      if (response.ok) {
+        const tickets = await response.json();
+        if (tickets.length > 0) {
+          setLatestTickets(prev => ({ ...prev, [projectId]: tickets[0] }));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load latest ticket:', err);
+    }
+  };
+
+  const formatTimestamp = (timestamp) => {
+    return new Date(timestamp).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   const getStatusColor = (status) => {
     const colors = {
@@ -425,6 +458,20 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                 {renderField(project, 'filename', project.filename, 'Filename')}
               </div>
 
+              {/* Latest project update preview */}
+              {latestTickets[project.id] && (
+                <div className="latest-update-preview">
+                  <div className="latest-update-header">Latest Update</div>
+                  <div className="latest-update-content">
+                    <div className="latest-update-meta">
+                      <span className="latest-update-author">{latestTickets[project.id].author}</span>
+                      <span className="latest-update-timestamp">{formatTimestamp(latestTickets[project.id].timestamp)}</span>
+                    </div>
+                    <div className="latest-update-text">{latestTickets[project.id].content}</div>
+                  </div>
+                </div>
+              )}
+
               {/* Additional surveying fields - expandable section */}
               {expandedCards.has(project.id) && (
                 <div className="card-additional">
@@ -437,18 +484,18 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                   {renderField(project, 'platBook', project.platBook, 'Plat Book')}
                   {renderField(project, 'platPage', project.platPage, 'Plat Page')}
                   
+                  <div className="card-footer">
+                    {renderField(project, 'created', project.created, 'Created', true)}
+                    {renderField(project, 'modified', project.modified, 'Modified', true)}
+                  </div>
+
+                  <div className="card-notes">
+                    {renderField(project, 'notes', project.notes, 'Notes')}
+                  </div>
+                  
                   <ProjectTickets projectId={project.id} />
                 </div>
               )}
-
-              <div className="card-footer">
-                {renderField(project, 'created', project.created, 'Created', true)}
-                {renderField(project, 'modified', project.modified, 'Modified', true)}
-              </div>
-
-              <div className="card-notes">
-                {renderField(project, 'notes', project.notes, 'Notes')}
-              </div>
 
               <div className="card-actions">
                 {showDeletePrompt === project.id ? (
