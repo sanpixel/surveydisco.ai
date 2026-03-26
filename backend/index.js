@@ -123,6 +123,14 @@ async function initDatabase() {
         ALTER TABLE surveydisco_projects 
         ADD COLUMN IF NOT EXISTS travel_distance VARCHAR(50)
       `);
+      await pool.query(`
+        ALTER TABLE surveydisco_projects 
+        ADD COLUMN IF NOT EXISTS flood_zone VARCHAR(50)
+      `);
+      await pool.query(`
+        ALTER TABLE surveydisco_projects 
+        ADD COLUMN IF NOT EXISTS firm_panel VARCHAR(50)
+      `);
     } catch (alterError) {
       // Columns might already exist, ignore error
       console.log('Columns might already exist');
@@ -178,6 +186,113 @@ async function calculateTravelTime(destinationAddress) {
 
   const homeAddress = '523 Hastings Way, Jonesboro, GA 30238';
   
+  try {
+    const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+    
+    const requestBody = {
+      origin: {
+        address: homeAddress
+      },
+      destination: {
+        address: destinationAddress
+      },
+      travelMode: 'DRIVE',
+      routingPreference: 'TRAFFIC_AWARE',
+      computeAlternativeRoutes: false,
+      routeModifiers: {
+        avoidTolls: false,
+        avoidHighways: false,
+        avoidFerries: false
+      },
+      languageCode: 'en-US',
+      units: 'IMPERIAL'
+    };
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY,
+        'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.staticDuration'
+      },
+      body: JSON.stringify(requestBody)
+    });
+    
+    const data = await response.json();
+    
+    if (data.routes && data.routes.length > 0) {
+      const route = data.routes[0];
+      const durationSeconds = parseInt(route.duration?.replace('s', '') || route.staticDuration?.replace('s', ''));
+      const distanceMeters = route.distanceMeters;
+      
+      if (durationSeconds && distanceMeters) {
+        // Convert duration to readable format
+        const hours = Math.floor(durationSeconds / 3600);
+        const minutes = Math.floor((durationSeconds % 3600) / 60);
+        let durationText = '';
+        if (hours > 0) {
+          durationText = `${hours} hr ${minutes} min`;
+        } else {
+          durationText = `${minutes} min`;
+        }
+        
+        // Convert distance to miles
+        const distanceMiles = (distanceMeters * 0.000621371).toFixed(1);
+        
+        return {
+          duration: durationText,
+          distance: `${distanceMiles} mi`
+        };
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Travel time calculation error:', error);
+    return null;
+  }
+}
+
+// Get FEMA flood map data using NFHL API
+async function getFemaFloodData(address) {
+  if (!address) {
+    return null;
+  }
+
+  try {
+    // First geocode the address to get lat/lon
+    const encodedAddress = encodeURIComponent(address);
+    const geocodeUrl = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodedAddress}&benchmark=2020&format=json`;
+    
+    const geocodeResponse = await fetch(geocodeUrl);
+    const geocodeData = await geocodeResponse.json();
+    
+    if (!geocodeData.result?.addressMatches?.[0]?.coordinates) {
+      return null;
+    }
+    
+    const { x: lon, y: lat } = geocodeData.result.addressMatches[0].coordinates;
+    
+    // Query FEMA NFHL for flood zone and FIRM panel
+    const femaUrl = `https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/28/query?geometry=${lon},${lat}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=FLD_ZONE,ZONE_SUBTY,FIRM_PAN&returnGeometry=false&f=json`;
+    
+    const femaResponse = await fetch(femaUrl);
+    const femaData = await femaResponse.json();
+    
+    if (femaData.features && femaData.features.length > 0) {
+      const feature = femaData.features[0].attributes;
+      return {
+        floodZone: feature.FLD_ZONE || null,
+        firmPanel: feature.FIRM_PAN || null
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('FEMA flood data error:', error);
+    return null;
+  }
+}
   try {
     const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
     
@@ -545,6 +660,19 @@ async function parseProjectText(text) {
     }
   }
 
+  // Get FEMA flood map data
+  if (addressToUse) {
+    try {
+      const femaData = await getFemaFloodData(addressToUse);
+      if (femaData) {
+        project.floodZone = femaData.floodZone;
+        project.firmPanel = femaData.firmPanel;
+      }
+    } catch (error) {
+      console.log('FEMA flood data fetch failed:', error);
+    }
+  }
+
   return project;
 }
 
@@ -588,6 +716,8 @@ app.get('/api/projects', async (req, res) => {
       notes: row.notes,
       travelTime: row.travel_time,
       travelDistance: row.travel_distance,
+      floodZone: row.flood_zone,
+      firmPanel: row.firm_panel,
       tags: row.tags,
       action: row.action,
       filename: row.filename,
@@ -670,8 +800,8 @@ app.post('/api/projects/parse', async (req, res) => {
     const project = await parseProjectText(text);
     
     const result = await pool.query(`
-      INSERT INTO surveydisco_projects (job_number, client, email, phone, prepared_for, address, geo_address, parcel, area, contact, service_type, cost_estimate, status, notes, travel_time, travel_distance)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+      INSERT INTO surveydisco_projects (job_number, client, email, phone, prepared_for, address, geo_address, parcel, area, contact, service_type, cost_estimate, status, notes, travel_time, travel_distance, flood_zone, firm_panel)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING *
     `, [
       project.jobNumber,
@@ -689,7 +819,9 @@ app.post('/api/projects/parse', async (req, res) => {
       project.status,
       project.notes,
       project.travelTime || null,
-      project.travelDistance || null
+      project.travelDistance || null,
+      project.floodZone || null,
+      project.firmPanel || null
     ]);
     
     const savedProject = {
@@ -712,6 +844,8 @@ app.post('/api/projects/parse', async (req, res) => {
       notes: result.rows[0].notes,
       travelTime: result.rows[0].travel_time,
       travelDistance: result.rows[0].travel_distance,
+      floodZone: result.rows[0].flood_zone,
+      firmPanel: result.rows[0].firm_panel,
       tags: result.rows[0].tags,
       action: result.rows[0].action,
       filename: result.rows[0].filename
@@ -902,6 +1036,8 @@ app.patch('/api/projects/:id', async (req, res) => {
       notes: result.rows[0].notes,
       travelTime: result.rows[0].travel_time,
       travelDistance: result.rows[0].travel_distance,
+      floodZone: result.rows[0].flood_zone,
+      firmPanel: result.rows[0].firm_panel,
       tags: result.rows[0].tags,
       action: result.rows[0].action,
       filename: result.rows[0].filename,

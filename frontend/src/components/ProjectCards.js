@@ -76,7 +76,17 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
 
   const finishEdit = () => {
     if (editingCell) {
-      onUpdate(editingCell.projectId, editingCell.field, editValue);
+      let value = editValue;
+      
+      // Format tags: capitalize first letter, single word only
+      if (editingCell.field === 'tags') {
+        value = editValue.trim().split(/\s+/)[0]; // Take first word only
+        if (value) {
+          value = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+        }
+      }
+      
+      onUpdate(editingCell.projectId, editingCell.field, value);
     }
     setEditingCell(null);
     setEditValue('');
@@ -452,7 +462,7 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                 {project.geoAddress && renderField(project, 'geoAddress', project.geoAddress, 'Geo Address')}
                 {renderField(project, 'area', project.area, 'Area (ACERS)')}
                 {renderField(project, 'serviceType', project.serviceType, 'Service')}
-                {renderField(project, 'filename', project.filename, 'Filename')}
+                {renderField(project, 'filename', project.filename, 'Data Collector Filename')}
               </div>
 
               {/* Latest project update preview */}
@@ -476,6 +486,8 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                   {renderField(project, 'parcel', project.parcel, 'Parcel/APN')}
                   {renderField(project, 'costEstimate', project.costEstimate, 'Cost Est.')}
                   {renderField(project, 'action', project.action, 'Action')}
+                  {renderField(project, 'floodZone', project.floodZone, 'Flood Zone')}
+                  {renderField(project, 'firmPanel', project.firmPanel, 'FIRM Panel')}
                   {renderField(project, 'landLot', project.landLot, 'Land Lot')}
                   {renderField(project, 'district', project.district, 'District')}
                   {renderField(project, 'county', project.county, 'County')}
