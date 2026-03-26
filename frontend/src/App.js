@@ -3,6 +3,7 @@ import './App.css';
 import TextInput from './components/TextInput';
 import ProjectCards from './components/ProjectCards';
 import TodoCard from './components/TodoCard';
+import PushNotifications from './components/PushNotifications';
 import { AdminProvider, useAdmin } from './contexts/AdminContext';
 
 function AppContent() {
@@ -182,6 +183,7 @@ function AppContent() {
               onDelete={deleteProject}
             />
             <TodoCard />
+            <PushNotifications />
             <div style={{ textAlign: 'center', margin: '20px 0' }}>
               <button 
                 onClick={sendMissingDataEmail}

@@ -10,6 +10,7 @@ const { Pool } = require('pg');
 const OpenAI = require('openai');
 const { Resend } = require('resend');
 const puppeteer = require('puppeteer');
+const webpush = require('web-push');
 
 // Initialize Supabase client with anon key BUT MAYBE IT NEEDS SR Key?
 const supabase = createClient(
@@ -35,6 +36,16 @@ const openai = new OpenAI({
 
 // Initialize Resend client
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Initialize web-push with VAPID keys
+// Generate keys with: npx web-push generate-vapid-keys
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  webpush.setVapidDetails(
+    'mailto:support@surveydisco.ai',
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+}
 
 // Initialize database table
 async function initDatabase() {
@@ -79,6 +90,15 @@ async function initDatabase() {
         setting_key VARCHAR(100) UNIQUE NOT NULL,
         setting_value TEXT,
         modified TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS surveydisco_push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        endpoint TEXT UNIQUE NOT NULL,
+        keys JSONB NOT NULL,
+        created TIMESTAMP DEFAULT NOW()
       )
     `);
     
@@ -1050,6 +1070,14 @@ app.patch('/api/projects/:id', async (req, res) => {
       platBook: result.rows[0].plat_book,
       platPage: result.rows[0].plat_page
     };
+    
+    // Send push notification for project update
+    sendPushNotification(
+      'Project Updated',
+      `Job #${updatedProject.jobNumber} - ${updatedProject.client || 'Project'} updated`,
+      { projectId: id, jobNumber: updatedProject.jobNumber }
+    );
+    
     res.json(updatedProject);
   } catch (error) {
     console.error('Error updating project:', error);
@@ -1389,6 +1417,69 @@ app.get('/api/projects/:id/tickets/recent', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch recent tickets' });
   }
 });
+
+// Push notification endpoints
+app.get('/api/push/vapid-public-key', (req, res) => {
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY || null });
+});
+
+app.post('/api/push/subscribe', async (req, res) => {
+  const { subscription } = req.body;
+  
+  try {
+    await pool.query(
+      'INSERT INTO surveydisco_push_subscriptions (endpoint, keys) VALUES ($1, $2) ON CONFLICT (endpoint) DO NOTHING',
+      [subscription.endpoint, JSON.stringify(subscription.keys)]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error saving push subscription:', error);
+    res.status(500).json({ error: 'Failed to save subscription' });
+  }
+});
+
+app.post('/api/push/unsubscribe', async (req, res) => {
+  const { endpoint } = req.body;
+  
+  try {
+    await pool.query('DELETE FROM surveydisco_push_subscriptions WHERE endpoint = $1', [endpoint]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error removing push subscription:', error);
+    res.status(500).json({ error: 'Failed to remove subscription' });
+  }
+});
+
+// Helper function to send push notifications
+async function sendPushNotification(title, body, data = {}) {
+  try {
+    const result = await pool.query('SELECT endpoint, keys FROM surveydisco_push_subscriptions');
+    const subscriptions = result.rows;
+    
+    const payload = JSON.stringify({ title, body, data });
+    
+    const promises = subscriptions.map(async (sub) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: sub.endpoint,
+            keys: sub.keys
+          },
+          payload
+        );
+      } catch (error) {
+        if (error.statusCode === 410) {
+          // Subscription expired, remove it
+          await pool.query('DELETE FROM surveydisco_push_subscriptions WHERE endpoint = $1', [sub.endpoint]);
+        }
+      }
+    });
+    
+    await Promise.all(promises);
+  } catch (error) {
+    console.error('Error sending push notifications:', error);
+  }
+}
 
 // Serve React static files
 app.use(express.static(path.join(__dirname, '../frontend/build')));
