@@ -276,7 +276,7 @@ async function calculateTravelTime(destinationAddress) {
 // Get FEMA flood map data using NFHL API
 async function getFemaFloodData(address) {
   if (!address) {
-    return null;
+    throw new Error('No address provided');
   }
 
   try {
@@ -288,7 +288,7 @@ async function getFemaFloodData(address) {
     const geocodeData = await geocodeResponse.json();
     
     if (!geocodeData.result?.addressMatches?.[0]?.coordinates) {
-      return null;
+      throw new Error('Could not geocode address');
     }
     
     const { x: lon, y: lat } = geocodeData.result.addressMatches[0].coordinates;
@@ -307,10 +307,10 @@ async function getFemaFloodData(address) {
       };
     }
     
-    return null;
+    throw new Error('No FEMA data found for this location');
   } catch (error) {
     console.error('FEMA flood data error:', error);
-    return null;
+    throw error;
   }
 }
 

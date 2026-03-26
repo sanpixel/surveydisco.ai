@@ -254,9 +254,14 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
         const updatedProject = await response.json();
         onUpdate(project.id, 'floodZone', updatedProject.floodZone);
         onUpdate(project.id, 'firmPanel', updatedProject.firmPanel);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server error:', errorData);
+        alert(`FEMA Error: ${errorData.error || 'Failed to refresh FEMA data'}`);
       }
     } catch (error) {
       console.error('Failed to refresh FEMA data:', error);
+      alert('Network error refreshing FEMA data');
     }
   };
 

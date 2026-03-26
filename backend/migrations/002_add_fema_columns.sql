@@ -1,0 +1,3 @@
+ALTER TABLE surveydisco_projects 
+ADD COLUMN IF NOT EXISTS flood_zone VARCHAR(50),
+ADD COLUMN IF NOT EXISTS firm_panel VARCHAR(50);
