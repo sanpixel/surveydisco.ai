@@ -1,5 +1,11 @@
 # ACD - Anti Code Drift Protocol
 
+## WINDOWS POWERSHELL - CRITICAL
+YOU ARE ON WINDOWS WITH POWERSHELL.
+NEVER USE `&&` IN GIT COMMANDS - IT DOES NOT WORK.
+USE SEMICOLONS: `git add -A; git commit -m "message"; git push`
+OR RUN COMMANDS SEPARATELY.
+
 ## Purpose
 Prevent code drift by ensuring new features follow existing patterns instead of inventing new approaches.
 
