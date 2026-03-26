@@ -878,6 +878,71 @@ app.post('/api/projects/:id/refresh-travel', async (req, res) => {
   }
 });
 
+// Refresh FEMA data for a project
+app.post('/api/projects/:id/refresh-fema', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const projectResult = await pool.query('SELECT * FROM surveydisco_projects WHERE id = $1', [id]);
+    
+    if (projectResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    
+    const project = projectResult.rows[0];
+    const addressToUse = project.geo_address || project.address;
+    
+    if (!addressToUse) {
+      return res.status(400).json({ error: 'No address available for FEMA data' });
+    }
+    
+    const femaData = await getFemaFloodData(addressToUse);
+    
+    if (femaData) {
+      const updateResult = await pool.query(`
+        UPDATE surveydisco_projects 
+        SET flood_zone = $1, firm_panel = $2, modified = NOW()
+        WHERE id = $3
+        RETURNING *
+      `, [femaData.floodZone, femaData.firmPanel, id]);
+      
+      const updatedProject = {
+        id: updateResult.rows[0].id,
+        jobNumber: updateResult.rows[0].job_number,
+        client: updateResult.rows[0].client,
+        email: updateResult.rows[0].email,
+        phone: updateResult.rows[0].phone,
+        preparedFor: updateResult.rows[0].prepared_for,
+        address: updateResult.rows[0].address,
+        geoAddress: updateResult.rows[0].geo_address,
+        parcel: updateResult.rows[0].parcel,
+        area: updateResult.rows[0].area,
+        contact: updateResult.rows[0].contact,
+        serviceType: updateResult.rows[0].service_type,
+        costEstimate: updateResult.rows[0].cost_estimate,
+        status: updateResult.rows[0].status,
+        created: updateResult.rows[0].created,
+        modified: updateResult.rows[0].modified,
+        notes: updateResult.rows[0].notes,
+        travelTime: updateResult.rows[0].travel_time,
+        travelDistance: updateResult.rows[0].travel_distance,
+        floodZone: updateResult.rows[0].flood_zone,
+        firmPanel: updateResult.rows[0].firm_panel,
+        tags: updateResult.rows[0].tags,
+        action: updateResult.rows[0].action,
+        filename: updateResult.rows[0].filename
+      };
+      
+      res.json(updatedProject);
+    } else {
+      res.status(500).json({ error: 'Failed to fetch FEMA data' });
+    }
+  } catch (error) {
+    console.error('Error refreshing FEMA data:', error);
+    res.status(500).json({ error: 'Failed to refresh FEMA data' });
+  }
+});
+
 // Update a project field
 app.patch('/api/projects/:id', async (req, res) => {
   const { id } = req.params;

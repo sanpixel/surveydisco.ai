@@ -239,6 +239,27 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
     }
   };
 
+  const refreshFemaData = async (project) => {
+    if (!project.address && !project.geoAddress) return;
+    
+    try {
+      const response = await fetch(`/api/projects/${project.id}/refresh-fema`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const updatedProject = await response.json();
+        onUpdate(project.id, 'floodZone', updatedProject.floodZone);
+        onUpdate(project.id, 'firmPanel', updatedProject.firmPanel);
+      }
+    } catch (error) {
+      console.error('Failed to refresh FEMA data:', error);
+    }
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       finishEdit();
@@ -556,6 +577,14 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                       title={expandedCards.has(project.id) ? "Hide surveying details" : "Show surveying details"}
                     >
                       {expandedCards.has(project.id) ? '📋 Less' : '📋 More'}
+                    </button>
+                    <button 
+                      onClick={() => refreshFemaData(project)}
+                      className="btn-action"
+                      disabled={!project.address && !project.geoAddress}
+                      title="Fetch FEMA flood zone and FIRM panel data"
+                    >
+                      🌊 FEMA
                     </button>
                     <button 
                       onClick={() => handleInitOneDrive(project)}
