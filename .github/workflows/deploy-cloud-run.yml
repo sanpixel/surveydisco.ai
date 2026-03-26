@@ -9,6 +9,8 @@ env:
   PROJECT_ID: warp-ratio
   SERVICE: surveydisco-ai
   REGION: us-central1
+  REGISTRY: us-central1-docker.pkg.dev
+  REPOSITORY: surveydisco-ai
 
 jobs:
   deploy:
@@ -29,10 +31,22 @@ jobs:
     - name: Set up Cloud SDK
       uses: 'google-github-actions/setup-gcloud@v2'
 
+    - name: Configure Docker
+      run: gcloud auth configure-docker ${{ env.REGISTRY }}
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build --cache-from ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:latest \
+          -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }} \
+          -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:latest \
+          .
+        docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
+        docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:latest
+
     - name: Deploy to Cloud Run
       run: |
         gcloud run deploy ${{ env.SERVICE }} \
-          --source . \
+          --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }} \
           --region ${{ env.REGION }} \
           --allow-unauthenticated \
           --memory 1Gi \
