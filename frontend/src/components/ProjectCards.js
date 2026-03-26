@@ -450,11 +450,8 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
                 {renderField(project, 'preparedFor', project.preparedFor, 'Prepared for')}
                 {renderField(project, 'address', project.address, 'Address')}
                 {project.geoAddress && renderField(project, 'geoAddress', project.geoAddress, 'Geo Address')}
-                {renderField(project, 'parcel', project.parcel, 'Parcel/APN')}
                 {renderField(project, 'area', project.area, 'Area (ACERS)')}
                 {renderField(project, 'serviceType', project.serviceType, 'Service')}
-                {renderField(project, 'costEstimate', project.costEstimate, 'Cost Est.')}
-                {renderField(project, 'action', project.action, 'Action')}
                 {renderField(project, 'filename', project.filename, 'Filename')}
               </div>
 
@@ -476,6 +473,9 @@ const ProjectCards = ({ projects, onUpdate, onDelete }) => {
               {expandedCards.has(project.id) && (
                 <div className="card-additional">
                   <div className="additional-header">Surveying Details</div>
+                  {renderField(project, 'parcel', project.parcel, 'Parcel/APN')}
+                  {renderField(project, 'costEstimate', project.costEstimate, 'Cost Est.')}
+                  {renderField(project, 'action', project.action, 'Action')}
                   {renderField(project, 'landLot', project.landLot, 'Land Lot')}
                   {renderField(project, 'district', project.district, 'District')}
                   {renderField(project, 'county', project.county, 'County')}
