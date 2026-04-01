@@ -949,15 +949,24 @@ app.post('/api/webhooks/resend', async (req, res) => {
     // Only handle emails that arrive
     if (event.type === 'email.received') {
       const emailId = event.data.email_id;
-      
-      // Fetch the full email content
-      const { data: email } = await resend.emails.receiving.get(emailId);
-      
-      const emailBody = email.text || email.html || '';
-      const from = email.from?.email || email.from;
-      const subject = email.subject || '(no subject)';
+      const from = event.data.from;
+      const subject = event.data.subject || '(no subject)';
       
       console.log(`📧 Processing email from ${from} — "${subject}"`);
+      
+      // Fetch the full email content using Resend API
+      const response = await fetch(`https://api.resend.com/emails/${emailId}`, {
+        headers: {
+          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch email: ${response.statusText}`);
+      }
+      
+      const email = await response.json();
+      const emailBody = email.text || email.html || '';
       
       if (!emailBody.trim()) {
         console.log('⚠️ Empty email body, skipping');
