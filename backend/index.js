@@ -898,48 +898,108 @@ app.post('/api/projects/:id/refresh-fema', async (req, res) => {
     
     const femaData = await getFemaFloodData(addressToUse);
     
-    if (femaData) {
-      const updateResult = await pool.query(`
-        UPDATE surveydisco_projects 
-        SET flood_zone = $1, firm_panel = $2, modified = NOW()
-        WHERE id = $3
-        RETURNING *
-      `, [femaData.floodZone, femaData.firmPanel, id]);
-      
-      const updatedProject = {
-        id: updateResult.rows[0].id,
-        jobNumber: updateResult.rows[0].job_number,
-        client: updateResult.rows[0].client,
-        email: updateResult.rows[0].email,
-        phone: updateResult.rows[0].phone,
-        preparedFor: updateResult.rows[0].prepared_for,
-        address: updateResult.rows[0].address,
-        geoAddress: updateResult.rows[0].geo_address,
-        parcel: updateResult.rows[0].parcel,
-        area: updateResult.rows[0].area,
-        contact: updateResult.rows[0].contact,
-        serviceType: updateResult.rows[0].service_type,
-        costEstimate: updateResult.rows[0].cost_estimate,
-        status: updateResult.rows[0].status,
-        created: updateResult.rows[0].created,
-        modified: updateResult.rows[0].modified,
-        notes: updateResult.rows[0].notes,
-        travelTime: updateResult.rows[0].travel_time,
-        travelDistance: updateResult.rows[0].travel_distance,
-        floodZone: updateResult.rows[0].flood_zone,
-        firmPanel: updateResult.rows[0].firm_panel,
-        tags: updateResult.rows[0].tags,
-        action: updateResult.rows[0].action,
-        filename: updateResult.rows[0].filename
-      };
-      
-      res.json(updatedProject);
-    } else {
-      res.status(500).json({ error: 'Failed to fetch FEMA data' });
-    }
+    const updateResult = await pool.query(`
+      UPDATE surveydisco_projects 
+      SET flood_zone = $1, firm_panel = $2, modified = NOW()
+      WHERE id = $3
+      RETURNING *
+    `, [femaData.floodZone, femaData.firmPanel, id]);
+    
+    const updatedProject = {
+      id: updateResult.rows[0].id,
+      jobNumber: updateResult.rows[0].job_number,
+      client: updateResult.rows[0].client,
+      email: updateResult.rows[0].email,
+      phone: updateResult.rows[0].phone,
+      preparedFor: updateResult.rows[0].prepared_for,
+      address: updateResult.rows[0].address,
+      geoAddress: updateResult.rows[0].geo_address,
+      parcel: updateResult.rows[0].parcel,
+      area: updateResult.rows[0].area,
+      contact: updateResult.rows[0].contact,
+      serviceType: updateResult.rows[0].service_type,
+      costEstimate: updateResult.rows[0].cost_estimate,
+      status: updateResult.rows[0].status,
+      created: updateResult.rows[0].created,
+      modified: updateResult.rows[0].modified,
+      notes: updateResult.rows[0].notes,
+      travelTime: updateResult.rows[0].travel_time,
+      travelDistance: updateResult.rows[0].travel_distance,
+      floodZone: updateResult.rows[0].flood_zone,
+      firmPanel: updateResult.rows[0].firm_panel,
+      tags: updateResult.rows[0].tags,
+      action: updateResult.rows[0].action,
+      filename: updateResult.rows[0].filename
+    };
+    
+    res.json(updatedProject);
   } catch (error) {
     console.error('Error refreshing FEMA data:', error);
-    res.status(500).json({ error: 'Failed to refresh FEMA data' });
+    res.status(500).json({ error: error.message || 'Failed to refresh FEMA data' });
+  }
+});
+
+// Resend webhook for incoming emails
+app.post('/api/webhooks/resend', async (req, res) => {
+  try {
+    const event = req.body;
+    
+    console.log('📨 Resend webhook received:', event.type);
+    
+    // Only handle emails that arrive
+    if (event.type === 'email.received') {
+      const emailId = event.data.email_id;
+      
+      // Fetch the full email content
+      const { data: email } = await resend.emails.receiving.get(emailId);
+      
+      const emailBody = email.text || email.html || '';
+      const from = email.from?.email || email.from;
+      const subject = email.subject || '(no subject)';
+      
+      console.log(`📧 Processing email from ${from} — "${subject}"`);
+      
+      if (!emailBody.trim()) {
+        console.log('⚠️ Empty email body, skipping');
+        return res.json({ success: true, message: 'Empty email' });
+      }
+      
+      // Parse email using existing function
+      const project = await parseProjectText(emailBody);
+      
+      // Create project in database
+      const result = await pool.query(`
+        INSERT INTO surveydisco_projects (job_number, client, email, phone, prepared_for, address, geo_address, parcel, area, contact, service_type, cost_estimate, status, notes, travel_time, travel_distance, flood_zone, firm_panel)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+        RETURNING *
+      `, [
+        project.jobNumber,
+        project.client,
+        project.email,
+        project.phone,
+        project.preparedFor,
+        project.address,
+        project.geoAddress,
+        project.parcel,
+        project.area,
+        project.contact,
+        project.serviceType,
+        project.costEstimate,
+        project.status,
+        project.notes,
+        project.travelTime || null,
+        project.travelDistance || null,
+        project.floodZone || null,
+        project.firmPanel || null
+      ]);
+      
+      console.log(`✅ Project created from email: ${result.rows[0].job_number}`);
+    }
+    
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Webhook error:', error);
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
 
