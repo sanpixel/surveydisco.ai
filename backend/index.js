@@ -939,22 +939,13 @@ app.post('/api/projects/:id/refresh-fema', async (req, res) => {
   }
 });
 
-// Resend webhook for incoming emails
-app.post('/api/webhooks/resend', async (req, res) => {
-  try {
-    const event = req.body;
-    
-    console.log('📨 Resend webhook received:', event.type);
-    
-    // Only handle emails that arrive
-    if (event.type === 'email.received') {
-      const emailId = event.data.email_id;
-      const from = event.data.from;
-      const subject = event.data.subject || '(no subject)';
-      
-      console.log(`📧 Processing email from ${from} — "${subject}"`);
-      
-      // Fetch the full email content using Resend REST API
+// Background email processing with retry
+async function processEmailInBackground(emailId, from, subject) {
+  let attempts = 0;
+  const maxAttempts = 5;
+  
+  while (attempts < maxAttempts) {
+    try {
       const response = await fetch(`https://api.resend.com/emails/${emailId}`, {
         headers: {
           'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
@@ -962,7 +953,7 @@ app.post('/api/webhooks/resend', async (req, res) => {
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch email: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch email: ${response.status}`);
       }
       
       const email = await response.json();
@@ -970,8 +961,10 @@ app.post('/api/webhooks/resend', async (req, res) => {
       
       if (!emailBody.trim()) {
         console.log('⚠️ Empty email body, skipping');
-        return res.json({ success: true, message: 'Empty email' });
+        return;
       }
+      
+      console.log(`✅ Fetched email from ${from} — "${subject}"`);
       
       // Parse email using existing function
       const project = await parseProjectText(emailBody);
@@ -1003,12 +996,43 @@ app.post('/api/webhooks/resend', async (req, res) => {
       ]);
       
       console.log(`✅ Project created from email: ${result.rows[0].job_number}`);
+      return;
+    } catch (err) {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        console.error(`❌ Failed to fetch email ${emailId} after ${maxAttempts} tries:`, err);
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, attempts * 1000));
+    }
+  }
+}
+
+// Resend webhook for incoming emails
+app.post('/api/webhooks/resend', async (req, res) => {
+  try {
+    const event = req.body;
+    
+    console.log('📨 Resend webhook received:', event.type);
+    
+    if (event.type === 'email.received') {
+      const emailId = event.data.email_id;
+      const from = event.data.from;
+      const subject = event.data.subject || '(no subject)';
+      
+      console.log(`📧 Processing email from ${from} — "${subject}"`);
+      
+      // Process in background with retry
+      processEmailInBackground(emailId, from, subject);
+      
+      // Acknowledge immediately
+      return res.json({ success: true });
     }
     
     return res.json({ success: true });
   } catch (error) {
     console.error('❌ Webhook error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.json({ success: false });
   }
 });
 
