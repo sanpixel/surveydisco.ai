@@ -954,7 +954,7 @@ app.post('/api/webhooks/resend', async (req, res) => {
       
       console.log(`📧 Processing email from ${from} — "${subject}"`);
       
-      // Fetch the full email content using Resend API
+      // Fetch the full email content using Resend REST API
       const response = await fetch(`https://api.resend.com/emails/${emailId}`, {
         headers: {
           'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
@@ -962,7 +962,7 @@ app.post('/api/webhooks/resend', async (req, res) => {
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch email: ${response.statusText}`);
+        throw new Error(`Failed to fetch email: ${response.status} ${response.statusText}`);
       }
       
       const email = await response.json();
