@@ -946,17 +946,7 @@ async function processEmailInBackground(emailId, from, subject) {
   
   while (attempts < maxAttempts) {
     try {
-      const response = await fetch(`https://api.resend.com/emails/${emailId}`, {
-        headers: {
-          'Authorization': `Bearer ${process.env.RESEND_API_KEY}`
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch email: ${response.status}`);
-      }
-      
-      const email = await response.json();
+      const { data: email } = await resend.emails.receiving.get(emailId);
       const emailBody = email.text || email.html || '';
       
       if (!emailBody.trim()) {
